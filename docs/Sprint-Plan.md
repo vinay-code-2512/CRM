@@ -56,7 +56,6 @@ All sprint work is executed using feature branches. Branch names map directly to
 - US-1.4: Email verification
 - US-1.5: Forgot password
 - US-1.6: Reset password
-- US-1.7: User profile
 **Dependencies:** Sprint 0 Foundation.
 **Expected Deliverables:** Secure endpoints for users to manage their accounts completely, including password resets and profile updates.
 **Git Branch Example:** `feature/SF-001-user-registration`

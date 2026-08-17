@@ -14,7 +14,7 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
   if (statusCode === 404) errorType = 'NotFound';
   
   res.status(statusCode).json({
-    error: err.name || errorType,
+    error: err.name || errorType, 
     message: message
   });
 };
