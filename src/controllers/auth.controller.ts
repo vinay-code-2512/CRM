@@ -49,3 +49,26 @@ export const loginController = async (req: Request, res: Response, next: NextFun
         next(error);
     }
 };
+
+
+// ==========================================
+// 3. LOGOUT CONTROLLER
+// ==========================================
+export const logoutController = async (req: Request, res: Response, next: NextFunction) => {
+    // WHY/PURPOSE: Even though we aren't doing any complex math or database calls here,
+    // we always use try/catch in our Controllers. This ensures that if the server randomly 
+    // crashes here, it will safely slide down to the Global Error Handler instead of breaking the app.
+    try {
+
+        // WHAT: The backend is "stateless". It doesn't remember who is logged in.
+        // HOW: True logout happens on the React Frontend when they delete the token from their browser.
+        // PURPOSE: The backend just needs to send a "200 OK" to let the frontend know the request was received.
+        res.status(200).json({
+            message: 'Logout Successfully'
+        });
+
+    } catch (error) {
+        // SECURITY CHECK: If anything goes wrong, slide the error down the pipe!
+        next(error);
+    }
+};
