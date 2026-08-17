@@ -1,7 +1,8 @@
 import app from './app';
 import { ENV, validateEnv } from './config/env';
 import { connectDB } from './config/db';
-
+import dns from 'dns';
+dns.setServers(['8.8.8.8']);
 const startServer = async () => {
   try {
     // Strictly validate required environment variables

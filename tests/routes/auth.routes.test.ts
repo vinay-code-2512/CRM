@@ -1,0 +1,165 @@
+import request from 'supertest';
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs'
+import { MongoMemoryServer } from 'mongodb-memory-server';
+
+// We import our main app! Supertest needs this to send HTTP requests to it.
+import app from '../../src/app';
+import User from '../../src/models/User';
+
+describe('Auth API Routes', () => {
+    let mongoServer: MongoMemoryServer;
+
+    // Standard database setup (Start the server)
+    beforeAll(async () => {
+        mongoServer = await MongoMemoryServer.create();
+        await mongoose.connect(mongoServer.getUri());
+    });
+
+    // Standard database cleanup (Stop the server)
+    afterAll(async () => {
+        await mongoose.connection.dropDatabase();
+        await mongoose.connection.close();
+        await mongoServer.stop();
+    });
+
+    // Wipe users before every test
+    afterEach(async () => {
+        await User.deleteMany({});
+    });
+
+    // API Tests will go here...
+
+       // TEST 1: The Happy Path
+    it('should register a user successfully and return 201', async () => {
+        
+        // 1. We use Supertest to send a real HTTP request to our Express app
+        const response = await request(app)
+            .post('/api/v1/auth/register')
+            .send({
+                name: 'API Test User',
+                email: 'api@example.com',
+                password: 'password123'
+            });
+
+        // 2. Check the HTTP status code from the Controller
+        expect(response.status).toBe(201);
+
+        // 3. Check the JSON data returned by the Controller
+        expect(response.body.name).toBe('API Test User');
+        expect(response.body.email).toBe('api@example.com');
+        
+        // 4. SECURITY CHECK: Ensure passwordHash is NOT sent to the client!
+        expect(response.body).not.toHaveProperty('passwordHash');
+
+        // 5. DATABASE CHECK: Let's manually look in MongoDB to ensure the user is actually there!
+        const userInDb = await User.findOne({ email: 'api@example.com' });
+        expect(userInDb).not.toBeNull();
+        expect(userInDb!.name).toBe('API Test User');
+    });
+
+        // TEST 2: The Duplicate Email Error
+    it('should return 400 if the email is already registered', async () => {
+        
+        // 1. Manually put a user in the database FIRST
+        await User.create({
+            name: 'Existing User',
+            email: 'duplicate@example.com',
+            passwordHash: 'hashedpassword'
+        });
+
+        // 2. Try to register a NEW user with the EXACT SAME EMAIL via the API
+        const response = await request(app)
+            .post('/api/v1/auth/register')
+            .send({
+                name: 'New User',
+                email: 'duplicate@example.com', // This should trigger the error!
+                password: 'password123'
+            });
+
+        // 3. We expect the server to reject the request and return status 400 (Bad Request)
+        expect(response.status).toBe(400);
+
+        // 4. We expect our Global Error Handler to send back an error message
+        expect(response.body).toHaveProperty('error');
+        expect(response.body.message).toBe('User already exists with this email');
+    });
+
+        // TEST 3: Validation Error (Missing password)
+    it('should return 400 if required data is missing', async () => {
+        
+        // 1. Send an HTTP request but purposely "forget" the password field
+        const response = await request(app)
+            .post('/api/v1/auth/register')
+            .send({
+                name: 'Missing Password User',
+                email: 'missing@example.com'
+                // password is intentionally missing!
+            });
+
+        // 2. We expect the validation middleware to block it and return 400 (Bad Request)
+        expect(response.status).toBe(400);
+
+        // 3. We expect an error response
+        expect(response.body).toHaveProperty('error');
+        
+        // Note: The exact error message depends on how Mongoose or your validation middleware formats it.
+        // Usually, it will mention that "password" is required.
+        // We will just verify it contains the word "password" (case-insensitive) somewhere in the message!
+        expect(response.body.message.toLowerCase()).toContain('password');
+    });
+
+     
+        describe('POST /api/v1/auth/login', () => {
+        // WHAT: Setup - Insert a fake user into the database
+        // WHY: We are testing the FULL pipe (Route -> Controller -> Service -> Database). 
+        // A user MUST exist in the DB for the Service to find them!
+        beforeEach(async () => {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('password123', salt);
+            
+            await User.create({
+                name: 'Route Login User',
+                email: 'routelogin@example.com',
+                passwordHash: hashedPassword
+            });
+        });
+
+        // WHAT: Test 1 - The Happy Path
+        // WHY: Prove that if the Receptionist, Manager, and Worker all succeed, we get our JWT.
+        it('should login successfully with correct credentials', async () => {
+            // HOW: Use Supertest to fire a real HTTP POST request at our app!
+            const response = await request(app)
+                .post('/api/v1/auth/login')
+                .send({
+                    email: 'routelogin@example.com',
+                    password: 'password123'
+                });
+
+            // SECURITY CHECK: The final output must be 200 OK
+            expect(response.status).toBe(200);
+            
+            // SECURITY CHECK: The final output must contain the JWT
+            expect(response.body).toHaveProperty('token');
+            
+            // SECURITY CHECK: The final output must hide the password hash!
+            expect(response.body.user.email).toBe('routelogin@example.com');
+            expect(response.body.user).not.toHaveProperty('passwordHash');
+        });
+
+        // WHAT: Test 2 - The Validation Middleware Check (The Receptionist)
+        // WHY: Prove that the 'validateBody' middleware kicks the user out if they forget the password
+        it('should return 400 Bad Request if password is missing', async () => {
+            // HOW: Send a request but maliciously omit the password field
+            const response = await request(app)
+                .post('/api/v1/auth/login')
+                .send({
+                    email: 'routelogin@example.com'
+                });
+
+            // SECURITY CHECK: The middleware should block them with a 400 Error BEFORE they reach the Manager!
+            expect(response.status).toBe(400);
+        });
+    })
+
+})

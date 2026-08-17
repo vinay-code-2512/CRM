@@ -1,6 +1,7 @@
 import express, { Application } from 'express';
 import { configureSecurity } from './middleware/security.middleware';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
+import authRoutes from './routes/auth.routes';
 
 const app: Application = express();
 
@@ -12,6 +13,9 @@ configureSecurity(app);
 
 // API Router namespace
 const apiRouter = express.Router();
+
+// Attach Auth routes to the master router under the '/auth' path
+apiRouter.use('/auth', authRoutes);
 
 // Register v1 router
 app.use('/api/v1', apiRouter);
