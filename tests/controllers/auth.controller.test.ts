@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 
 // We import the Controller we want to test
-import { registerController, loginController } from "../../src/controllers/auth.controller";
+import { registerController, loginController, logoutController } from "../../src/controllers/auth.controller";
 
 // We import the User model to clean up the database between tests
 import User from '../../src/models/User';
@@ -234,5 +234,41 @@ describe('Auth Controller - registerController', () => {
             expect(next).toHaveBeenCalledWith(expect.any(Error));
             expect(next.mock.calls[0][0].statusCode).toBe(401);
         });
+    });
+
+    // ==========================================
+    // 3. LOGOUT CONTROLLER TESTS
+    // ==========================================
+    describe('logoutController', () => {
+
+        // WHAT: Test 1 - The Happy Path
+        // WHY: The Manager must immediately return 200 OK without talking to the Worker.
+        it('should return 200 and a success message on logout', async () => {
+            
+            // HOW: We fake an empty envelope (no data needed for logout)
+            const req = {} as any;
+
+            // HOW: We create fake 'spy cameras' for the Manager's megaphone
+            const res = {
+                status: jest.fn().mockReturnThis(),
+                json: jest.fn()
+            } as any;
+
+            // HOW: We fake the error slide (even though we don't expect errors here)
+            const next = jest.fn() as any;
+
+            // PURPOSE: Execute the Manager (Controller) directly!
+            // Notice we DID NOT hypnotize (mock) the Worker, because the Manager doesn't even call the Worker!
+            await logoutController(req, res, next);
+
+            // SECURITY CHECK: Did the Manager check the spy camera and officially say 200 OK?
+            expect(res.status).toHaveBeenCalledWith(200);
+            
+            // SECURITY CHECK: Did the Manager send the exact success message back to the client?
+            expect(res.json).toHaveBeenCalledWith({
+                message: 'Logout Successfully'
+            });
+        });
+
     });
 });

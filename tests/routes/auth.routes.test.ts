@@ -160,6 +160,30 @@ describe('Auth API Routes', () => {
             // SECURITY CHECK: The middleware should block them with a 400 Error BEFORE they reach the Manager!
             expect(response.status).toBe(400);
         });
-    })
+    });
 
-})
+    // ==========================================
+    // 3. LOGOUT ROUTE INTEGRATION TESTS
+    // ==========================================
+    describe('POST /api/v1/auth/logout', () => {
+
+        // WHAT: Test 1 - The Happy Path
+        // WHY: Prove that a user can successfully log out through the full API pipeline.
+        it('should return 200 OK and a success message', async () => {
+            
+            // HOW: We use Supertest to simulate Postman firing a POST request to the /logout route.
+            const response = await request(app)
+                .post('/api/v1/auth/logout')
+                .send(); // No body required for logout!
+
+            // SECURITY CHECK: Did the entire pipe work without crashing and return 200?
+            expect(response.status).toBe(200);
+
+            // SECURITY CHECK: Did we get the exact JSON message we expect?
+            expect(response.body).toEqual({
+                message: 'Logout Successfully'
+            });
+        });
+    });
+
+});
