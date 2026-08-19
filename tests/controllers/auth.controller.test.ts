@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 
 // We import the Controller we want to test
-import { registerController, loginController, logoutController } from "../../src/controllers/auth.controller";
+import { registerController, loginController, logoutController, getProfileController, updateProfileController } from "../../src/controllers/auth.controller";
 
 // We import the User model to clean up the database between tests
 import User from '../../src/models/User';
@@ -265,10 +265,83 @@ describe('Auth Controller - registerController', () => {
             expect(res.status).toHaveBeenCalledWith(200);
             
             // SECURITY CHECK: Did the Manager send the exact success message back to the client?
-            expect(res.json).toHaveBeenCalledWith({
+            expect(res.json).toHaveBeenCalledWith({ 
                 message: 'Logout Successfully'
             });
-        });
+        }); 
 
+    });
+
+    // ==========================================
+    // 4. GET PROFILE CONTROLLER TESTS
+    // ==========================================
+    describe('getProfileController', () => {
+        it('should return 200 and the user profile data', async () => {
+            // HOW: First, we need to create a real user in the test database
+            const testUser = await User.create({
+                name: 'Controller Tester',
+                email: 'controller@test.com',
+                passwordHash: 'hashed123'
+            });
+
+            // HOW: We fake the incoming request, but THIS TIME, we pretend the Bouncer 
+            // already did his job and successfully attached the ID to req.user!
+            const req = {
+                user: { userId: testUser._id.toString() }
+            } as any;
+
+            // HOW: Fake the response object (spy cameras)
+            const res = {
+                status: jest.fn().mockReturnThis(),
+                json: jest.fn()
+            } as any;
+
+            const next = jest.fn() as any;
+
+            // PURPOSE: Execute the Manager
+            await getProfileController(req, res, next);
+
+            // SECURITY CHECK: Did it return 200 OK?
+            expect(res.status).toHaveBeenCalledWith(200);
+
+            // SECURITY CHECK: Did it return the user data without the password?
+            const jsonCallArgs = res.json.mock.calls[0][0]; // Grabs the first argument of the first time it was called
+            expect(jsonCallArgs.user.name).toBe('Controller Tester');
+            expect(jsonCallArgs.user.passwordHash).toBeUndefined();
+        });
+    });
+
+    // ==========================================
+    // 5. UPDATE PROFILE CONTROLLER TESTS
+    // ==========================================
+    describe('updateProfileController', () => {
+        it('should return 200 and the updated user data', async () => {
+            const testUser = await User.create({
+                name: 'Old Name',
+                email: 'update@test.com',
+                passwordHash: 'hashed123'
+            });
+
+            // HOW: Fake the request, providing the Bouncer's stamp AND the new body data
+            const req = {
+                user: { userId: testUser._id.toString() },
+                body: { name: 'Brand New Name' }
+            } as any;
+
+            const res = {
+                status: jest.fn().mockReturnThis(),
+                json: jest.fn()
+            } as any;
+
+            const next = jest.fn() as any;
+
+            await updateProfileController(req, res, next);
+
+            expect(res.status).toHaveBeenCalledWith(200);
+            
+            const jsonCallArgs = res.json.mock.calls[0][0];
+            expect(jsonCallArgs.message).toBe('Profile updated successfully');
+            expect(jsonCallArgs.user.name).toBe('Brand New Name');
+        });
     });
 });

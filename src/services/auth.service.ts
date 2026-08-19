@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken'
 import { ENV } from '../config/env'
 
+
 export const registerUser = async (userData: any) => {
     // 1. Destructure the data (extract specific fields)
     const { name, email, password } = userData;
@@ -82,4 +83,50 @@ export const loginUser = async (userData: any) => {
             email: user.email
         }
     };
+};
+
+
+// ==========================================
+// 3. GET USER BY ID WORKER
+// ==========================================
+export const getUserById = async (userId: string) => {
+    // WHY/PURPOSE: This Worker takes the ID stamped by the Bouncer and finds the user in the database.
+    // HOW: We use Mongoose's findById.
+    // SECURITY CHECK: We use .select('-passwordHash') to ensure the database NEVER returns the password back to the Manager!
+    const user = await User.findById(userId).select('-passwordHash');
+
+    // WHAT: If the token is valid, but the user was deleted from the database yesterday, we must throw an error.
+    if (!user) {
+        const error: any = new Error('User not found');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    return user;
+};
+
+
+// ==========================================
+// 4. UPDATE USER PROFILE WORKER
+// ==========================================
+export const updateUserById = async (userId: string, updateData: { name: string }) => {
+    // WHY/PURPOSE: This Worker takes the new data and updates the user in the database.
+    // HOW: We use Mongoose's findByIdAndUpdate.
+    // WHAT: { new: true } tells MongoDB to return the UPDATED user, not the old one.
+    // WHAT: runValidators ensures they didn't pass a blank name.
+    const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { name: updateData.name }, // We only allow 'name' to be updated for now!
+        { new: true, runValidators: true }
+    ).select('-passwordHash');
+
+    if (!updatedUser) {
+        // any lets the variable holds anytype used to bypass 
+        // typescript type checking
+       // any skips type checking   
+        const error: any = new Error('User not found');
+        error.statusCode = 404;
+        throw error;
+    }
+    return updatedUser;
 };
