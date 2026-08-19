@@ -30,9 +30,9 @@ describe('Auth API Routes', () => {
 
     // API Tests will go here...
 
-       // TEST 1: The Happy Path
+    // TEST 1: The Happy Path
     it('should register a user successfully and return 201', async () => {
-        
+
         // 1. We use Supertest to send a real HTTP request to our Express app
         const response = await request(app)
             .post('/api/v1/auth/register')
@@ -48,7 +48,7 @@ describe('Auth API Routes', () => {
         // 3. Check the JSON data returned by the Controller
         expect(response.body.name).toBe('API Test User');
         expect(response.body.email).toBe('api@example.com');
-        
+
         // 4. SECURITY CHECK: Ensure passwordHash is NOT sent to the client!
         expect(response.body).not.toHaveProperty('passwordHash');
 
@@ -58,9 +58,9 @@ describe('Auth API Routes', () => {
         expect(userInDb!.name).toBe('API Test User');
     });
 
-        // TEST 2: The Duplicate Email Error
+    // TEST 2: The Duplicate Email Error
     it('should return 400 if the email is already registered', async () => {
-        
+
         // 1. Manually put a user in the database FIRST
         await User.create({
             name: 'Existing User',
@@ -85,9 +85,9 @@ describe('Auth API Routes', () => {
         expect(response.body.message).toBe('User already exists with this email');
     });
 
-        // TEST 3: Validation Error (Missing password)
+    // TEST 3: Validation Error (Missing password)
     it('should return 400 if required data is missing', async () => {
-        
+
         // 1. Send an HTTP request but purposely "forget" the password field
         const response = await request(app)
             .post('/api/v1/auth/register')
@@ -102,22 +102,22 @@ describe('Auth API Routes', () => {
 
         // 3. We expect an error response
         expect(response.body).toHaveProperty('error');
-        
+
         // Note: The exact error message depends on how Mongoose or your validation middleware formats it.
         // Usually, it will mention that "password" is required.
         // We will just verify it contains the word "password" (case-insensitive) somewhere in the message!
         expect(response.body.message.toLowerCase()).toContain('password');
     });
 
-     
-        describe('POST /api/v1/auth/login', () => {
+
+    describe('POST /api/v1/auth/login', () => {
         // WHAT: Setup - Insert a fake user into the database
         // WHY: We are testing the FULL pipe (Route -> Controller -> Service -> Database). 
         // A user MUST exist in the DB for the Service to find them!
         beforeEach(async () => {
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash('password123', salt);
-            
+
             await User.create({
                 name: 'Route Login User',
                 email: 'routelogin@example.com',
@@ -138,10 +138,10 @@ describe('Auth API Routes', () => {
 
             // SECURITY CHECK: The final output must be 200 OK
             expect(response.status).toBe(200);
-            
+
             // SECURITY CHECK: The final output must contain the JWT
             expect(response.body).toHaveProperty('token');
-            
+
             // SECURITY CHECK: The final output must hide the password hash!
             expect(response.body.user.email).toBe('routelogin@example.com');
             expect(response.body.user).not.toHaveProperty('passwordHash');
@@ -170,7 +170,7 @@ describe('Auth API Routes', () => {
         // WHAT: Test 1 - The Happy Path
         // WHY: Prove that a user can successfully log out through the full API pipeline.
         it('should return 200 OK and a success message', async () => {
-            
+
             // HOW: We use Supertest to simulate Postman firing a POST request to the /logout route.
             const response = await request(app)
                 .post('/api/v1/auth/logout')
@@ -186,4 +186,93 @@ describe('Auth API Routes', () => {
         });
     });
 
+    // ==========================================
+    // 4. GET PROFILE ROUTE INTEGRATION TESTS
+    // ==========================================
+    describe('GET /api/v1/auth/me', () => {
+        let validToken: string;
+
+        // HOW: Before testing the protected route, we MUST register a user and log them in to get a real token!
+        beforeEach(async () => {
+            const testEmail = `route${Math.random()}@test.com`;
+            await request(app)
+                .post('/api/v1/auth/register')
+                .send({
+                    name: 'Route Tester',
+                    email: testEmail,
+                    password: 'password123'
+                });
+
+            const res = await request(app)
+                .post('/api/v1/auth/login')
+                .send({
+                    email: testEmail,
+                    password: 'password123'
+                });
+            validToken = res.body.token; // Grab the real JWT token!
+        });
+
+        it('should return 401 if no token is provided', async () => {
+            // HOW: We try to hit the protected route WITHOUT a token
+            const response = await request(app).get('/api/v1/auth/me');
+
+            // SECURITY CHECK: The Bouncer should block us!
+            expect(response.status).toBe(401);
+        });
+
+        it('should return 200 and profile if valid token is provided', async () => {
+            const response = await request(app)
+                .get('/api/v1/auth/me')
+                .set('Authorization', `Bearer ${validToken}`); // HOW: Attach the token to the header like Postman!
+
+            expect(response.status).toBe(200);
+            expect(response.body.user.name).toBe('Route Tester');
+        });
+    });
+
+    // ==========================================
+    // 5. UPDATE PROFILE ROUTE INTEGRATION TESTS
+    // ==========================================
+    describe('PUT /api/v1/auth/me', () => {
+        let validToken: string;
+
+        beforeEach(async () => {
+            const testEmail = `update${Math.random()}@test.com`;
+            await request(app)
+                .post('/api/v1/auth/register')
+                .send({
+                    name: 'Update Tester',
+                    email: testEmail,
+                    password: 'password123'
+                });
+
+            const res = await request(app)
+                .post('/api/v1/auth/login')
+                .send({
+                    email: testEmail,
+                    password: 'password123'
+                });
+            validToken = res.body.token;
+        });
+
+        it('should return 400 if name is missing from body', async () => {
+            const response = await request(app)
+                .put('/api/v1/auth/me')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({}); // Maliciously forgetting to send the 'name'!
+
+            // SECURITY CHECK: The Receptionist (validateBody) should block it with a 400 Error!
+            expect(response.status).toBe(400);
+        });
+
+        it('should return 200 and updated profile if valid request', async () => {
+            const response = await request(app)
+                .put('/api/v1/auth/me')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ name: 'Fresh Name' });
+
+            expect(response.status).toBe(200);
+            expect(response.body.user.name).toBe('Fresh Name');
+        });
+    });
 });

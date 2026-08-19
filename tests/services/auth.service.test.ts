@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // Import the function we are testing
-import { registerUser,loginUser } from '../../src/services/auth.service';
+import { registerUser,loginUser, getUserById,updateUserById } from '../../src/services/auth.service';
 
 import bcrypt from 'bcryptjs'
 
@@ -72,6 +72,7 @@ describe('Auth Service - registerUser', () => {
         const userInDb = await User.findOne({ email: 'hash@example.com' });
         // The passwordHash in the database should NOT equal the plain password
         // If they're equal, it means hashing failed — a critical security flaw
+        // ! means not null
         expect(userInDb!.passwordHash).not.toBe(plainPassword);
         // bcrypt hashes always start with '$2a$' or '$2b$'
         // This proves it's a real bcrypt hash, not some random transformation
@@ -204,6 +205,65 @@ describe('Auth Service - registerUser', () => {
             }
         });
     });
-}); // This closes the main describe('Auth Service') block!
-
     
+    // ==========================================
+    // 3. GET USER AND UPDATE USER WORKER TESTS
+    // ==========================================
+    describe('Profile Service Workers', () => {
+        let testUserId: string;
+
+        // WHAT: Run this before every test in this block
+        beforeEach(async () => {
+            // HOW: Create a dummy user in the in-memory database
+            const user = await User.create({
+                name: 'Profile Tester',
+                email: 'profile@test.com',
+                passwordHash: 'hashed123'
+            });
+            // PURPOSE: Save the ID so we can look it up in the tests!
+            testUserId = user._id.toString();
+        });
+
+        describe('getUserById', () => {
+            it('should return user data without the passwordHash', async () => {
+                // HOW: Hand the Worker the ID
+                const user = await getUserById(testUserId);
+
+                // SECURITY CHECK: Did it find the user?
+                expect(user).toBeDefined();
+                expect(user.name).toBe('Profile Tester');
+                
+                // SECURITY CHECK: Is the password safely hidden?
+                expect((user as any).passwordHash).toBeUndefined();
+            });
+
+            it('should throw a 404 error if user does not exist', async () => {
+                // HOW: Generate a fake but correctly formatted MongoDB ID
+                const fakeId = new mongoose.Types.ObjectId().toString();
+
+                // SECURITY CHECK: Ensure it throws the 404 Error
+                await expect(getUserById(fakeId)).rejects.toThrow('User not found');
+            });
+        });
+
+        describe('updateUserById', () => {
+            it('should update the name and return fresh data', async () => {
+                // HOW: Hand the Worker the ID and the new name
+                const updatedUser = await updateUserById(testUserId, { name: 'New Awesome Name' });
+
+                // SECURITY CHECK: Did the name actually change?
+                expect(updatedUser.name).toBe('New Awesome Name');
+                
+                // SECURITY CHECK: Is the password still hidden on the returned object?
+                expect((updatedUser as any).passwordHash).toBeUndefined();
+            });
+
+            it('should throw a 404 error if updating a deleted user', async () => {
+                const fakeId = new mongoose.Types.ObjectId().toString();
+
+                await expect(updateUserById(fakeId, { name: 'Hacker Name' })).rejects.toThrow('User not found');
+            });
+        });
+    });
+
+}); // This closes the main describe('Auth Service') block!

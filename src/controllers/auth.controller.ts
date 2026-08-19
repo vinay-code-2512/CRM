@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 
 // Import the Service function that contains registration business logic
-import { registerUser , loginUser} from '../services/auth.service';
+import { registerUser , loginUser, getUserById, updateUserById} from '../services/auth.service';
 
 
 // Register Controller
@@ -69,6 +69,50 @@ export const logoutController = async (req: Request, res: Response, next: NextFu
 
     } catch (error) {
         // SECURITY CHECK: If anything goes wrong, slide the error down the pipe!
+        next(error);
+    }
+};
+
+// ==========================================
+// 4. GET PROFILE CONTROLLER
+// ==========================================
+export const getProfileController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // WHAT: The Bouncer (auth.middleware) already verified the token and gave us the ID!
+        // HOW: We grab it directly from the envelope (req.user.userId).
+        // WHY '!': The exclamation mark '!' tells TypeScript "Don't worry, I am 100% sure the Bouncer put it there."
+        const userId = req.user!.userId; 
+
+        // NEED: The Manager hands the ID to the Worker and says "Go fetch this user's data!"
+        const user = await getUserById(userId);
+
+        // PURPOSE: The Manager takes the safe data from the Worker and sends it back to the client.
+        res.status(200).json({ user });
+    } catch (error) {
+        next(error); // SECURITY CHECK: Slide any errors (like 404 User Not Found) down the pipe!
+    }
+};
+
+// ==========================================
+// 5. UPDATE PROFILE CONTROLLER
+// ==========================================
+export const updateProfileController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // WHAT: Grab the ID from the Bouncer
+        const userId = req.user!.userId;
+        
+        // WHAT: Grab the new data from the client (e.g., { name: "New Name" })
+        const updateData = req.body; 
+
+        // HOW: The Manager hands BOTH the ID and the new data to the Worker.
+        const updatedUser = await updateUserById(userId, updateData);
+
+        // PURPOSE: The Manager tells the client the update was successful, and gives them the fresh data!
+        res.status(200).json({
+            message: 'Profile updated successfully',
+            user: updatedUser
+        });
+    } catch (error) {
         next(error);
     }
 };
