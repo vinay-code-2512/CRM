@@ -2,6 +2,7 @@ import User from '../models/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken'
 import { ENV } from '../config/env'
+import crypto from 'crypto'
 
 
 export const registerUser = async (userData: any) => {
@@ -129,4 +130,65 @@ export const updateUserById = async (userId: string, updateData: { name: string 
         throw error;
     }
     return updatedUser;
+};
+
+
+// ==========================================
+// 5. GENERATE EMAIL VERIFICATION TOKEN WORKER
+// ==========================================
+export const generateEmailVerificationToken = async (userId: string) => {
+    // WHY/PURPOSE: When a user registers (or requests a resend), we create a secret token
+    // and email it to them. They click the link to prove they own the email.
+    // STEP 1: Find the user in the database
+    const user = await User.findById(userId);
+    if (!user) {
+        const error: any = new Error('User not found');
+        error.statusCode = 404;
+        throw error;
+    }
+    // STEP 2: Generate a random token using Node.js built-in 'crypto' module
+    // HOW: crypto.randomBytes(32) creates 32 random bytes, then we convert to a readable hex string
+    // WHAT: This produces something like "a3f5b8c1d2e4..." — a unique, unguessable string
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    // STEP 3: Hash the token before saving to the database
+    // WHY: Same reason we hash passwords — if the database leaks, the attacker can't use stolen tokens!
+    // HOW: crypto.createHash('sha256') creates a one-way hash
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    // STEP 4: Save the hashed token and expiry (24 hours from now) to the user's record
+    user.emailVerificationToken = hashedToken;
+    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    await user.save();
+    // STEP 5: Return the RAW (unhashed) token — this is what we send in the email link!
+    // WHY: The user clicks the link with the raw token. We then hash it again and compare it to the database.
+    return rawToken;
+}
+
+
+
+// ==========================================
+// 6. VERIFY EMAIL TOKEN WORKER
+// ==========================================
+export const verifyEmailToken = async (token: string) => {
+    // WHY/PURPOSE: When the user clicks the verification link, this Worker checks if the token is valid.
+    // STEP 1: Hash the incoming raw token (from the URL) so we can compare it to the stored hash
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    // STEP 2: Find a user whose token matches AND whose token hasn't expired yet
+    // HOW: $gt means "greater than" — we check if the expiry date is still in the future!
+    const user = await User.findOne({
+        emailVerificationToken: hashedToken,
+        emailVerificationExpires: { $gt: Date.now() }
+    });
+    // STEP 3: If no user found, the token is either invalid or expired
+    if (!user) {
+        const error: any = new Error('Invalid or expired verification token');
+        error.statusCode = 400;
+        throw error;
+    }
+    // STEP 4: Mark the email as verified and clean up the token fields
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+    // STEP 5: Return the verified user
+    return user;
 };

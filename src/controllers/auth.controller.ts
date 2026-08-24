@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 
 // Import the Service function that contains registration business logic
-import { registerUser , loginUser, getUserById, updateUserById} from '../services/auth.service';
+import { registerUser , loginUser, getUserById, updateUserById, generateEmailVerificationToken, verifyEmailToken} from '../services/auth.service';
 
 
 // Register Controller
@@ -111,6 +111,63 @@ export const updateProfileController = async (req: Request, res: Response, next:
         res.status(200).json({
             message: 'Profile updated successfully',
             user: updatedUser
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ==========================================
+// 6. SEND EMAIL VERIFICATION CONTROLLER
+// ==========================================
+export const sendVerificationController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // WHAT: The Bouncer already verified the token, so we know who the user is!
+        const userId = req.user!.userId;
+
+        // HOW: Ask the Worker to generate a verification token and save it to the database
+        const rawToken = await generateEmailVerificationToken(userId);
+
+        // PURPOSE: In a real app, we would send an email here with a link like:
+        // https://syncforge.com/verify-email?token=abc123
+        // For now, we just return the token directly (we'll add email sending later)
+        res.status(200).json({
+            message: 'Verification email sent successfully',
+            verificationToken: rawToken
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ==========================================
+// 7. VERIFY EMAIL CONTROLLER
+// ==========================================
+export const verifyEmailController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // WHAT: The user clicked the verification link, which contains the raw token
+        // HOW: We grab it from the URL query string (e.g., /verify-email?token=abc123)
+        const { token } = req.query;
+
+        // SECURITY CHECK: Make sure a token was actually provided
+        if (!token || typeof token !== 'string') {
+            const error: any = new Error('Verification token is required');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        // HOW: Hand the token to the Worker to verify it
+        const user = await verifyEmailToken(token);
+
+        // PURPOSE: Tell the user their email is now verified!
+        res.status(200).json({
+            message: 'Email verified successfully',
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                isEmailVerified: user.isEmailVerified
+            }
         });
     } catch (error) {
         next(error);

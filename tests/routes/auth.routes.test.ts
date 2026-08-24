@@ -162,6 +162,7 @@ describe('Auth API Routes', () => {
         });
     });
 
+
     // ==========================================
     // 3. LOGOUT ROUTE INTEGRATION TESTS
     // ==========================================
@@ -185,6 +186,7 @@ describe('Auth API Routes', () => {
             });
         });
     });
+
 
     // ==========================================
     // 4. GET PROFILE ROUTE INTEGRATION TESTS
@@ -273,6 +275,105 @@ describe('Auth API Routes', () => {
 
             expect(response.status).toBe(200);
             expect(response.body.user.name).toBe('Fresh Name');
+        });
+    });
+
+    // ==========================================
+    // 6. SEND VERIFICATION EMAIL ROUTE INTEGRATION TESTS
+    // ==========================================
+    describe('POST /api/v1/auth/send-verification', () => {
+        let validToken: string;
+
+        // HOW: Register + Login to get a real JWT token
+        beforeEach(async () => {
+            const testEmail = `verify${Math.random()}@test.com`;
+            await request(app)
+                .post('/api/v1/auth/register')
+                .send({
+                    name: 'Verify Route Tester',
+                    email: testEmail,
+                    password: 'password123'
+                });
+
+            const res = await request(app)
+                .post('/api/v1/auth/login')
+                .send({
+                    email: testEmail,
+                    password: 'password123'
+                });
+            validToken = res.body.token;
+        });
+
+        it('should return 401 if no token is provided', async () => {
+            const response = await request(app)
+                .post('/api/v1/auth/send-verification');
+
+            expect(response.status).toBe(401);
+        });
+
+        it('should return 200 and a verification token if logged in', async () => {
+            const response = await request(app)
+                .post('/api/v1/auth/send-verification')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.message).toBe('Verification email sent successfully');
+            expect(response.body.verificationToken).toBeDefined();
+        });
+    });
+
+    // ==========================================
+    // 7. VERIFY EMAIL ROUTE INTEGRATION TESTS
+    // ==========================================
+    describe('GET /api/v1/auth/verify-email', () => {
+
+        it('should return 400 if no token query param is provided', async () => {
+            const response = await request(app)
+                .get('/api/v1/auth/verify-email');
+
+            expect(response.status).toBe(400);
+        });
+
+        it('should return 400 if token is invalid', async () => {
+            const response = await request(app)
+                .get('/api/v1/auth/verify-email?token=fake-garbage-token');
+
+            expect(response.status).toBe(400);
+        });
+
+        it('should return 200 and verify the email with a valid token', async () => {
+            // STEP 1: Register + Login
+            const testEmail = `fullverify${Math.random()}@test.com`;
+            await request(app)
+                .post('/api/v1/auth/register')
+                .send({
+                    name: 'Full Verify Tester',
+                    email: testEmail,
+                    password: 'password123'
+                });
+
+            const loginRes = await request(app)
+                .post('/api/v1/auth/login')
+                .send({
+                    email: testEmail,
+                    password: 'password123'
+                });
+            const validToken = loginRes.body.token;
+
+            // STEP 2: Request a verification token
+            const sendRes = await request(app)
+                .post('/api/v1/auth/send-verification')
+                .set('Authorization', `Bearer ${validToken}`);
+
+            const verificationToken = sendRes.body.verificationToken;
+
+            // STEP 3: Use the token to verify the email!
+            const verifyRes = await request(app)
+                .get(`/api/v1/auth/verify-email?token=${verificationToken}`);
+
+            expect(verifyRes.status).toBe(200);
+            expect(verifyRes.body.message).toBe('Email verified successfully');
+            expect(verifyRes.body.user.isEmailVerified).toBe(true);
         });
     });
 });

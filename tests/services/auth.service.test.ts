@@ -5,9 +5,10 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // Import the function we are testing
-import { registerUser,loginUser, getUserById,updateUserById } from '../../src/services/auth.service';
+import { registerUser, loginUser, getUserById, updateUserById, generateEmailVerificationToken, verifyEmailToken } from '../../src/services/auth.service';
 
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto';
 
 // Import the User model to directly verify database state
 import User from '../../src/models/User';
@@ -262,6 +263,117 @@ describe('Auth Service - registerUser', () => {
                 const fakeId = new mongoose.Types.ObjectId().toString();
 
                 await expect(updateUserById(fakeId, { name: 'Hacker Name' })).rejects.toThrow('User not found');
+            });
+        });
+    });
+
+    // ==========================================
+    // 4. EMAIL VERIFICATION WORKER TESTS
+    // ==========================================
+    describe('Email Verification Workers', () => {
+        let testUserId: string;
+
+        // WHAT: Before every test, create a fresh unverified user
+        beforeEach(async () => {
+            const user = await User.create({
+                name: 'Email Tester',
+                email: 'verify@test.com',
+                passwordHash: 'hashed123',
+                isEmailVerified: false
+            });
+            testUserId = user._id.toString();
+        });
+
+        describe('generateEmailVerificationToken', () => {
+
+            it('should return a raw token string', async () => {
+                // HOW: Call the Worker with the user's ID
+                const rawToken = await generateEmailVerificationToken(testUserId);
+
+                // WHAT: The raw token must be a non-empty string
+                expect(rawToken).toBeDefined();
+                expect(typeof rawToken).toBe('string');
+                expect(rawToken.length).toBeGreaterThan(0);
+            });
+
+            it('should save a HASHED token to the database (not the raw one)', async () => {
+                // HOW: Generate the token
+                const rawToken = await generateEmailVerificationToken(testUserId);
+
+                // HOW: Manually hash the raw token the same way the Worker does
+                const expectedHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+                // HOW: Go directly to the database and check what was stored
+                const userInDb = await User.findById(testUserId);
+
+                // SECURITY CHECK: The stored token must be the HASH, not the raw token!
+                expect(userInDb!.emailVerificationToken).toBe(expectedHash);
+                expect(userInDb!.emailVerificationToken).not.toBe(rawToken);
+            });
+
+            it('should save an expiry date in the future', async () => {
+                // HOW: Generate the token
+                await generateEmailVerificationToken(testUserId);
+
+                // HOW: Check the database
+                const userInDb = await User.findById(testUserId);
+
+                // WHAT: The expiry must exist and be in the future
+                expect(userInDb!.emailVerificationExpires).toBeDefined();
+                expect(userInDb!.emailVerificationExpires!.getTime()).toBeGreaterThan(Date.now());
+            });
+
+            it('should throw 404 if user does not exist', async () => {
+                const fakeId = new mongoose.Types.ObjectId().toString();
+
+                await expect(generateEmailVerificationToken(fakeId)).rejects.toThrow('User not found');
+            });
+        });
+
+        describe('verifyEmailToken', () => {
+
+            it('should verify the user and set isEmailVerified to true', async () => {
+                // STEP 1: Generate a token (this saves the hash to DB)
+                const rawToken = await generateEmailVerificationToken(testUserId);
+
+                // STEP 2: Call verifyEmailToken with the RAW token (simulating clicking the link)
+                const verifiedUser = await verifyEmailToken(rawToken);
+
+                // SECURITY CHECK: isEmailVerified must now be true!
+                expect(verifiedUser.isEmailVerified).toBe(true);
+            });
+
+            it('should clean up the token fields after verification', async () => {
+                // STEP 1: Generate a token
+                const rawToken = await generateEmailVerificationToken(testUserId);
+
+                // STEP 2: Verify the email
+                await verifyEmailToken(rawToken);
+
+                // STEP 3: Check the database directly
+                const userInDb = await User.findById(testUserId);
+
+                // SECURITY CHECK: Token fields must be wiped clean!
+                expect(userInDb!.emailVerificationToken).toBeUndefined();
+                expect(userInDb!.emailVerificationExpires).toBeUndefined();
+            });
+
+            it('should throw 400 if token is invalid', async () => {
+                // HOW: Pass a completely fake token
+                await expect(verifyEmailToken('totally-fake-token')).rejects.toThrow('Invalid or expired verification token');
+            });
+
+            it('should throw 400 if token is expired', async () => {
+                // STEP 1: Generate a token
+                const rawToken = await generateEmailVerificationToken(testUserId);
+
+                // STEP 2: Manually set the expiry to the PAST (simulate 24 hours passing)
+                await User.findByIdAndUpdate(testUserId, {
+                    emailVerificationExpires: new Date(Date.now() - 1000) // 1 second in the past!
+                });
+
+                // STEP 3: Try to verify — should fail because it's expired!
+                await expect(verifyEmailToken(rawToken)).rejects.toThrow('Invalid or expired verification token');
             });
         });
     });

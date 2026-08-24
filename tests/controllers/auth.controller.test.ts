@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 
 // We import the Controller we want to test
-import { registerController, loginController, logoutController, getProfileController, updateProfileController } from "../../src/controllers/auth.controller";
+import { registerController, loginController, logoutController, getProfileController, updateProfileController, sendVerificationController, verifyEmailController } from "../../src/controllers/auth.controller";
 
 // We import the User model to clean up the database between tests
 import User from '../../src/models/User';
@@ -342,6 +342,140 @@ describe('Auth Controller - registerController', () => {
             const jsonCallArgs = res.json.mock.calls[0][0];
             expect(jsonCallArgs.message).toBe('Profile updated successfully');
             expect(jsonCallArgs.user.name).toBe('Brand New Name');
+        });
+    });
+
+
+    // ==========================================
+    // 6. SEND VERIFICATION CONTROLLER TESTS
+    // ==========================================
+    describe('sendVerificationController', () => {
+        let testUserId: string;
+
+        beforeEach(async () => {
+            const user = await User.create({
+                name: 'Verify Tester',
+                email: 'verify@controller.com',
+                passwordHash: 'hashed123'
+            });
+            testUserId = user._id.toString();
+        });
+
+        it('should return 200 and a verification token', async () => {
+            // HOW: Fake the request envelope — the Bouncer already put userId inside!
+            const req = { user: { userId: testUserId } } as any;
+
+            const res = {
+                status: jest.fn().mockReturnThis(),
+                json: jest.fn()
+            } as any;
+
+            const next = jest.fn() as any;
+
+            // PURPOSE: Execute the Manager directly!
+            await sendVerificationController(req, res, next);
+
+            // SECURITY CHECK: Must return 200 OK
+            expect(res.status).toHaveBeenCalledWith(200);
+
+            // SECURITY CHECK: Must return the raw token
+            const jsonCallArgs = res.json.mock.calls[0][0];
+            expect(jsonCallArgs.message).toBe('Verification email sent successfully');
+            expect(jsonCallArgs.verificationToken).toBeDefined();
+            expect(typeof jsonCallArgs.verificationToken).toBe('string');
+        });
+
+        it('should call next(error) if user does not exist', async () => {
+            // HOW: Use a fake ID that doesn't exist in the database
+            const req = { user: { userId: new mongoose.Types.ObjectId().toString() } } as any;
+
+            const res = {
+                status: jest.fn().mockReturnThis(),
+                json: jest.fn()
+            } as any;
+
+            const next = jest.fn() as any;
+
+            await sendVerificationController(req, res, next);
+
+            // SECURITY CHECK: The error must slide down to the Global Error Handler
+            expect(next).toHaveBeenCalled();
+        });
+    });
+
+    // ==========================================
+    // 7. VERIFY EMAIL CONTROLLER TESTS
+    // ==========================================
+    describe('verifyEmailController', () => {
+        let testUserId: string;
+
+        beforeEach(async () => {
+            const user = await User.create({
+                name: 'Verify Tester',
+                email: 'verify@controller.com',
+                passwordHash: 'hashed123'
+            });
+            testUserId = user._id.toString();
+        });
+
+        it('should return 200 and mark email as verified', async () => {
+            // STEP 1: Generate a real token first (need the service for this)
+            const { generateEmailVerificationToken } = require('../../src/services/auth.service');
+            const rawToken = await generateEmailVerificationToken(testUserId);
+
+            // STEP 2: Fake the request — token comes from query string
+            const req = { query: { token: rawToken } } as any;
+
+            const res = {
+                status: jest.fn().mockReturnThis(),
+                json: jest.fn()
+            } as any;
+
+            const next = jest.fn() as any;
+
+            await verifyEmailController(req, res, next);
+
+            // SECURITY CHECK: Must return 200 OK
+            expect(res.status).toHaveBeenCalledWith(200);
+
+            // SECURITY CHECK: Must confirm verification
+            const jsonCallArgs = res.json.mock.calls[0][0];
+            expect(jsonCallArgs.message).toBe('Email verified successfully');
+            expect(jsonCallArgs.user.isEmailVerified).toBe(true);
+        });
+
+        it('should call next(error) if no token is provided', async () => {
+            // HOW: Send an empty query string — no token!
+            const req = { query: {} } as any;
+
+            const res = {
+                status: jest.fn().mockReturnThis(),
+                json: jest.fn()
+            } as any;
+
+            const next = jest.fn() as any;
+
+            await verifyEmailController(req, res, next);
+
+            // SECURITY CHECK: The error must slide to the Global Error Handler
+            expect(next).toHaveBeenCalled();
+        });
+
+        it('should call next(error) if token is invalid', async () => {
+            // HOW: Send a completely fake token
+            const req = { query: { token: 'fake-garbage-token' } } as any;
+
+            const res = {
+                status: jest.fn().mockReturnThis(),
+                json: jest.fn()
+            } as any;
+
+            const next = jest.fn() as any;
+
+            await verifyEmailController(req, res, next);
+
+            // SECURITY CHECK: Must reject the fake token
+            expect(next).toHaveBeenCalled();
         });
     });
 });
