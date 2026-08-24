@@ -5,6 +5,8 @@ export interface IUser extends Document {
     email: string;
     passwordHash: string;
     isEmailVerified: boolean;
+    emailVerificationToken?: string
+    emailVerificationExpires?: Date
     profileData?: Record<string, any>;
     createdAt: Date;   
     updatedAt: Date
@@ -40,6 +42,18 @@ const UserSchema = new Schema<IUser>(
             type: Boolean,    // True or False
             default: false,   // If not provided, automatically set it to false
         },
+
+        // WHAT: The hashed token we send in the verification email
+        // WHY: We store it hashed (like a password) so if the database leaks, no one can use these tokens!
+        emailVerificationToken: {
+            type: String,
+        },
+        // WHAT: The expiry date for the verification token
+        // WHY: Tokens should expire! If someone doesn't verify in 24 hours, the token becomes useless.
+        emailVerificationExpires: {
+            type: Date,
+        },
+
 
         profileData: {
             type: Object,     // A flexible object for future data (like phone number, avatar)

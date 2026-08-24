@@ -4,7 +4,7 @@ import {requireAuth} from '../middleware/auth.middleware'
 import { validateBody } from '../middleware/validation.middleware';
 
 // Import the Controller (Manager) that will handle registration requests
-import { registerController, loginController, logoutController, getProfileController, updateProfileController } from '../controllers/auth.controller';
+import { registerController, loginController, logoutController, getProfileController, updateProfileController, sendVerificationController, verifyEmailController } from '../controllers/auth.controller';
 // Create a new Router instance (a mini-app just for Auth routes)
 const router = express.Router();
 
@@ -40,5 +40,22 @@ router.get('/me', requireAuth, getProfileController);
 // HOW: We use the Bouncer (requireAuth) AND the Receptionist (validateBody) 
 // to ensure they are logged in AND they sent a valid 'name' field.
 router.put('/me', requireAuth, validateBody(['name']), updateProfileController);
+
+// ==========================================
+// 6. SEND VERIFICATION EMAIL ROUTE (PROTECTED)
+// ==========================================
+// WHAT: The endpoint to request a verification email.
+// HOW: The user must be logged in (Bouncer). We generate a token and "send" the email.
+// WHY POST: Sending an email is a state-changing action (generates a new token in the DB).
+router.post('/send-verification', requireAuth, sendVerificationController);
+
+// ==========================================
+// 7. VERIFY EMAIL ROUTE (PUBLIC)
+// ==========================================
+// WHAT: The endpoint the user hits when they click the verification link in their email.
+// HOW: The raw token comes in the URL query string: /verify-email?token=abc123
+// WHY GET: The user is simply clicking a link in their email — that's always a GET request!
+// WHY NO BOUNCER: The user might not be logged in when they click the email link!
+router.get('/verify-email', verifyEmailController);
 
 export default router;
