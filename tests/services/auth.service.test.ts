@@ -5,11 +5,11 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // Import the function we are testing
-import { registerUser, loginUser, getUserById, updateUserById, generateEmailVerificationToken, verifyEmailToken } from '../../src/services/auth.service';
+import { registerUser, loginUser, getUserById, updateUserById, generateEmailVerificationToken, verifyEmailToken, generatePasswordResetToken, resetPassword } from '../../src/services/auth.service';
 
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto';
-
+import jwt from 'jsonwebtoken';
 // Import the User model to directly verify database state
 import User from '../../src/models/User';
 
@@ -374,6 +374,155 @@ describe('Auth Service - registerUser', () => {
 
                 // STEP 3: Try to verify — should fail because it's expired!
                 await expect(verifyEmailToken(rawToken)).rejects.toThrow('Invalid or expired verification token');
+            });
+        });
+    }); 
+
+
+    // ==========================================
+    // 5. PASSWORD RESET TESTS (US-1.5 & US-1.6)
+    // ==========================================
+    describe('Password Reset Flows', () => {
+        let testUserId: string;
+        let testEmail: string;
+
+        // Setup: Create a fresh user for password tests
+        beforeEach(async () => {
+            testEmail = `reset${Math.random()}@test.com`;
+            const user = await User.create({
+                name: 'Reset Tester',
+                email: testEmail,
+                passwordHash: await bcrypt.hash('oldPassword123', 10),
+                isEmailVerified: true
+            });
+            testUserId = user._id.toString();
+        });
+
+        describe('generatePasswordResetToken', () => {
+            it('should return success message if email exists but NOT return the token', async () => {
+                const response = await generatePasswordResetToken(testEmail);
+                
+                // SECURITY CHECK: We must return a generic message to prevent enumeration
+                expect(response.message).toBe('If an account exists for this email, a password reset link has been sent.');
+            });
+
+            it('should return the EXACT SAME success message if email does NOT exist (Zero-Knowledge)', async () => {
+                const response = await generatePasswordResetToken('nobody@test.com');
+                
+                // SECURITY CHECK: Do not leak "User not found"
+                expect(response.message).toBe('If an account exists for this email, a password reset link has been sent.');
+            });
+
+            it('should throw 400 if email is missing', async () => {
+                await expect(generatePasswordResetToken('')).rejects.toMatchObject({
+                    statusCode: 400,
+                    message: 'Email is required'
+                });
+            });
+
+            it('should throw 400 if email is invalid', async () => {
+                await expect(generatePasswordResetToken('invalid-email')).rejects.toMatchObject({
+                    statusCode: 400,
+                    message: 'Invalid email format'
+                });
+            });
+        });
+
+        describe('resetPassword', () => {
+            let validResetToken: string;
+
+            // HOW: We need to manually generate a valid reset token to test the reset function
+            beforeEach(async () => {
+                const user = await User.findById(testUserId);
+                // The secret is tied to the current password hash!
+                const secret = process.env.JWT_SECRET + user!.passwordHash;
+                validResetToken = jwt.sign({ userId: testUserId }, secret, { expiresIn: '15m' });
+            });
+
+            it('should successfully reset the password with a valid token', async () => {
+                const newPassword = 'NewSecurePassword123';
+                
+                const response = await resetPassword(validResetToken, newPassword);
+                expect(response.message).toBe('Password reset successful.');
+
+                // Verify the database actually updated
+                const updatedUser = await User.findById(testUserId);
+                
+                // Old password should fail
+                const oldPasswordMatch = await bcrypt.compare('oldPassword123', updatedUser!.passwordHash);
+                expect(oldPasswordMatch).toBe(false);
+
+                // New password should succeed
+                const newPasswordMatch = await bcrypt.compare(newPassword, updatedUser!.passwordHash);
+                expect(newPasswordMatch).toBe(true);
+            });
+
+            it('should automatically invalidate the token AFTER the password is changed', async () => {
+                const newPassword = 'NewSecurePassword123';
+                
+                // STEP 1: Change the password
+                await resetPassword(validResetToken, newPassword);
+
+                // STEP 2: Try to use the EXACT SAME token again
+                // SECURITY CHECK: It MUST fail because the password hash (and thus the secret) changed!
+                await expect(resetPassword(validResetToken, 'AnotherPassword456')).rejects.toMatchObject({
+                    statusCode: 400,
+                    message: 'Invalid or expired reset token'
+                });
+            });
+
+            it('should throw 400 if token is missing', async () => {
+                await expect(resetPassword('', 'newPass123')).rejects.toMatchObject({
+                    statusCode: 400,
+                    message: 'Token and new password are required'
+                });
+            });
+
+            it('should throw 400 if new password is missing', async () => {
+                await expect(resetPassword(validResetToken, '')).rejects.toMatchObject({
+                    statusCode: 400,
+                    message: 'Token and new password are required'
+                });
+            });
+
+            it('should throw 400 if token is completely invalid/garbage', async () => {
+                await expect(resetPassword('garbage.token.here', 'newPass123')).rejects.toMatchObject({
+                    statusCode: 400,
+                    message: 'Invalid or expired reset token'
+                });
+            });
+
+            it('should throw 400 if the reset token has expired', async () => {
+                const user = await User.findById(testUserId);
+                const secret = process.env.JWT_SECRET + user!.passwordHash;
+                
+                // HOW: Generate a token that expired 1 second ago
+                const expiredToken = jwt.sign({ userId: testUserId }, secret, { expiresIn: '-1s' });
+
+                await expect(resetPassword(expiredToken, 'newPass123')).rejects.toMatchObject({
+                    statusCode: 400,
+                    message: 'Invalid or expired reset token'
+                });
+            });
+
+            it('should throw 400 if the new password is too weak/invalid', async () => {
+                // SECURITY CHECK: Must enforce minimum password length (e.g., 6 chars)
+                await expect(resetPassword(validResetToken, '123')).rejects.toMatchObject({
+                    statusCode: 400,
+                    message: 'Password must be at least 6 characters long'
+                });
+            });
+
+            it('should throw 400 if the user in the token no longer exists', async () => {
+                // HOW: Create a token for a fake user ID
+                const fakeId = new mongoose.Types.ObjectId().toString();
+                // We just use a random secret here since the user doesn't exist to have a hash
+                const fakeUserToken = jwt.sign({ userId: fakeId }, process.env.JWT_SECRET + 'fakehash', { expiresIn: '15m' });
+
+                await expect(resetPassword(fakeUserToken, 'newPass123')).rejects.toMatchObject({
+                    statusCode: 400,
+                    message: 'Invalid or expired reset token'
+                });
             });
         });
     });
