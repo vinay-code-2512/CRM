@@ -192,3 +192,119 @@ export const verifyEmailToken = async (token: string) => {
     // STEP 5: Return the verified user
     return user;
 };
+
+
+// ==========================================
+// 7. GENERATE PASSWORD RESET TOKEN WORKER
+// ==========================================
+export const generatePasswordResetToken = async (email: string) => {
+    // SECURITY CHECK: Missing email
+    if (!email) {
+        const error: any = new Error('Email is required');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    // SECURITY CHECK: Basic format validation 
+    // (Zod catches this in the controller, but good to have double validation)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        const error: any = new Error('Invalid email format');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    // ZERO-KNOWLEDGE RESPONSE:
+    // We always return this exact message regardless of whether the user exists.
+    // This strictly prevents "email enumeration" (hackers checking if an email is registered).
+    const successResponse = {
+        message: 'If an account exists for this email, a password reset link has been sent.'
+    };
+
+    // HOW: Find the user. We need +passwordHash because we use it for the token secret!
+    const user = await User.findOne({ email }).select('+passwordHash');
+    
+    if (!user) {
+        // Stop silently and return the generic message.
+        return successResponse;
+    }
+
+    // STATELESS TOKEN APPROACH:
+    // We tie the JWT secret to the user's CURRENT password hash.
+    const secret = ENV.JWT_SECRET + user.passwordHash;
+
+    // Create a short-lived token (15 mins)
+    const resetToken = jwt.sign(
+        { userId: user._id },
+        secret,
+        { expiresIn: '15m' }
+    );
+
+    // MOCK EMAIL DELIVERY
+    console.log(`\n📧 [MOCK EMAIL] Password Reset Requested for ${email}`);
+    console.log(`🔗 Link: http://localhost:3000/reset-password?token=${resetToken}\n`);
+
+    return successResponse;
+};
+
+
+// ==========================================
+// 8. RESET PASSWORD WORKER
+// ==========================================
+export const resetPassword = async (token: string, newPassword: string) => {
+    // SECURITY CHECK: Ensure token and new password are provided
+    if (!token || !newPassword) {
+        const error: any = new Error('Token and new password are required');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    // SECURITY CHECK: Password strength validation
+    if (newPassword.length < 6) {
+        const error: any = new Error('Password must be at least 6 characters long');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    try {
+        // STEP 1: Decode the token WITHOUT verifying the signature yet
+        // We need the userId inside it so we can fetch the user's hash.
+        const decoded = jwt.decode(token) as { userId: string } | null;
+        
+        if (!decoded || !decoded.userId) {
+            throw new Error('Invalid token structure');
+        }
+
+        // STEP 2: Fetch the user and get their CURRENT password hash
+        const user = await User.findById(decoded.userId).select('+passwordHash');
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        // STEP 3: Reconstruct the specific dynamic secret used to sign THIS user's tokens
+        const secret = ENV.JWT_SECRET + user.passwordHash;
+
+        // STEP 4: Verify the token using this exact secret
+        // If the password changed since token creation, this will throw an error!
+        // If it's expired, this will throw an error!
+        jwt.verify(token, secret);
+
+        // STEP 5: Token is completely valid. Hash the NEW password.
+        const salt = await bcrypt.genSalt(10);
+        const newHashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // STEP 6: Save the new password.
+        // Because the passwordHash just changed, the previous token is now permanently invalid!
+        user.passwordHash = newHashedPassword;
+        await user.save();
+
+        return { message: 'Password reset successful.' };
+        
+    } catch (err: any) {
+        // We catch all JWT verification errors (expired, invalid signature, fake user)
+        // and throw a generic 400 error to the Global Error Handler.
+        const error: any = new Error('Invalid or expired reset token');
+        error.statusCode = 400;
+        throw error;
+    }
+};
