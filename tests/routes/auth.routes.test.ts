@@ -376,4 +376,121 @@ describe('Auth API Routes', () => {
             expect(verifyRes.body.user.isEmailVerified).toBe(true);
         });
     });
+
+    // ==========================================
+    // 8. FORGOT PASSWORD ROUTE INTEGRATION TESTS
+    // ==========================================
+    describe('POST /api/v1/auth/forgot-password', () => {
+
+        it('should return 200 with generic message for existing email', async () => {
+            // STEP 1: Register a user first
+            const testEmail = `forgot${Math.random()}@test.com`;
+            await request(app)
+                .post('/api/v1/auth/register')
+                .send({
+                    name: 'Forgot Tester',
+                    email: testEmail,
+                    password: 'password123'
+                });
+
+            // STEP 2: Request password reset
+            const response = await request(app)
+                .post('/api/v1/auth/forgot-password')
+                .send({ email: testEmail });
+
+            expect(response.status).toBe(200);
+            expect(response.body.message).toBe('If an account exists for this email, a password reset link has been sent.');
+        });
+
+        it('should return 200 with the EXACT SAME message for non-existing email (Zero-Knowledge)', async () => {
+            const response = await request(app)
+                .post('/api/v1/auth/forgot-password')
+                .send({ email: 'ghost@nowhere.com' });
+
+            // SECURITY CHECK: Must NOT leak "User not found"
+            expect(response.status).toBe(200);
+            expect(response.body.message).toBe('If an account exists for this email, a password reset link has been sent.');
+        });
+
+        it('should return 400 if email is missing', async () => {
+            const response = await request(app)
+                .post('/api/v1/auth/forgot-password')
+                .send({});
+
+            expect(response.status).toBe(400);
+        });
+    });
+
+    // ==========================================
+    // 9. RESET PASSWORD ROUTE INTEGRATION TESTS
+    // ==========================================
+    describe('POST /api/v1/auth/reset-password', () => {
+
+        it('should return 200 and reset password with valid token (Full Flow)', async () => {
+            // STEP 1: Register a user
+            const testEmail = `resetflow${Math.random()}@test.com`;
+            await request(app)
+                .post('/api/v1/auth/register')
+                .send({
+                    name: 'Reset Flow Tester',
+                    email: testEmail,
+                    password: 'oldPassword123'
+                });
+
+            // STEP 2: Generate a reset token manually (same way the service does)
+            const jwt = require('jsonwebtoken');
+            const User = require('../../src/models/User').default;
+
+            const user = await User.findOne({ email: testEmail }).select('+passwordHash');
+            const secret = process.env.JWT_SECRET + user.passwordHash;
+            const resetToken = jwt.sign({ userId: user._id }, secret, { expiresIn: '15m' });
+
+            // STEP 3: Reset the password
+            const resetRes = await request(app)
+                .post('/api/v1/auth/reset-password')
+                .send({ token: resetToken, newPassword: 'BrandNewPassword123' });
+
+            expect(resetRes.status).toBe(200);
+            expect(resetRes.body.message).toBe('Password reset successful.');
+
+            // STEP 4: Verify old password fails
+            const oldLoginRes = await request(app)
+                .post('/api/v1/auth/login')
+                .send({ email: testEmail, password: 'oldPassword123' });
+
+            expect(oldLoginRes.status).toBe(401);
+
+            // STEP 5: Verify new password works
+            const newLoginRes = await request(app)
+                .post('/api/v1/auth/login')
+                .send({ email: testEmail, password: 'BrandNewPassword123' });
+
+            expect(newLoginRes.status).toBe(200);
+            expect(newLoginRes.body.token).toBeDefined();
+        });
+
+        it('should return 400 if token is missing', async () => {
+            const response = await request(app)
+                .post('/api/v1/auth/reset-password')
+                .send({ newPassword: 'SomePassword123' });
+
+            expect(response.status).toBe(400);
+        });
+
+        it('should return 400 if newPassword is missing', async () => {
+            const response = await request(app)
+                .post('/api/v1/auth/reset-password')
+                .send({ token: 'some-token' });
+
+            expect(response.status).toBe(400);
+        });
+
+        it('should return 400 if token is invalid/garbage', async () => {
+            const response = await request(app)
+                .post('/api/v1/auth/reset-password')
+                .send({ token: 'garbage-fake-token', newPassword: 'SomePassword123' });
+
+            expect(response.status).toBe(400);
+        });
+    });
 });
