@@ -2,7 +2,14 @@ import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 
 // We import the Controller we want to test
-import { registerController, loginController, logoutController, getProfileController, updateProfileController, sendVerificationController, verifyEmailController } from "../../src/controllers/auth.controller";
+// Update this line:
+import { registerController, loginController, logoutController, getProfileController, 
+    updateProfileController, sendVerificationController, verifyEmailController,
+     forgotPasswordController, resetPasswordController } 
+     from "../../src/controllers/auth.controller";
+
+// Add this line so we can mock the service functions:
+import * as authService from '../../src/services/auth.service';
 
 // We import the User model to clean up the database between tests
 import User from '../../src/models/User';
@@ -15,7 +22,7 @@ import { NextFunction } from "express";
 describe('Auth Controller - registerController', () => {
 
     let mongoServer: MongoMemoryServer;
- 
+
     // Start the fake in-memory MongoDB server before any tests run
     beforeAll(async () => {
         mongoServer = await MongoMemoryServer.create();
@@ -52,18 +59,18 @@ describe('Auth Controller - registerController', () => {
 
         // 2. Create a fake 'res' object with spy functions
         // We use jest.fn() so we can spy on these functions later
-        
+
         // Remember in our Controller we chained methods like this: res.status(201).json(newUser).
         // If our fake res.status function returns undefined, the chain breaks and .json() crashes.
         // .mockReturnThis() tells our spy function: "When you are called,
         //  return the res object itself, so the next function in the chain can be called."
-        
+
         //  // 2. Create a fake 'res' object. 
         // We use jest.fn() like a "Hidden Camera". It does nothing, but it secretly
         // records what the Controller does (e.g. what status code it sends). 
         // Later, we check the camera footage using .toHaveBeenCalledWith()
         // .mockReturnThis() ensures res.status(201).json() chaining doesn't crash.
-       
+
         const res = {
             status: jest.fn().mockReturnThis(),
             json: jest.fn()
@@ -80,7 +87,7 @@ describe('Auth Controller - registerController', () => {
         expect(res.status).toHaveBeenCalledWith(201);
     });
 
-        // TEST 2: Does the controller send the safe user data back?
+    // TEST 2: Does the controller send the safe user data back?
     it('should return sanitized user data in response', async () => {
 
         // 1. Setup our fake request
@@ -127,7 +134,7 @@ describe('Auth Controller - registerController', () => {
         expect(sentData).not.toHaveProperty('passwordHash');
     });
 
-        // TEST 3: Does the controller catch errors and pass them to next()?
+    // TEST 3: Does the controller catch errors and pass them to next()?
     it('should pass errors to next() if something goes wrong', async () => {
 
         // 1. Force the database to already have this email
@@ -165,22 +172,22 @@ describe('Auth Controller - registerController', () => {
         // 6. Look exactly at what error the Controller passed to next()
         // .mock.calls[0][0] gets the exact error object that was passed
         const passedError = next.mock.calls[0][0];
-        
+
         // Ensure it is a real Error object
         expect(passedError).toBeInstanceOf(Error);
         // Ensure the error message matches what the Service threw
         expect(passedError.message).toBe('User already exists with this email');
     });
 
-    
+
     describe('loginController', () => {
-        
+
         beforeEach(async () => {
             // HOW: We need a fake user in the RAM database to test logging in
             const bcrypt = require('bcryptjs');
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash('password123', salt);
-            
+
             await User.create({
                 name: 'Controller Test',
                 email: 'controller@example.com',
@@ -211,7 +218,7 @@ describe('Auth Controller - registerController', () => {
 
             // SECURITY CHECK: Ensure the Manager correctly responded with 200 OK
             expect(res.status).toHaveBeenCalledWith(200);
-            
+
             // SECURITY CHECK: Ensure the Manager passed the correct data to the client
             expect(res.json).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -244,7 +251,7 @@ describe('Auth Controller - registerController', () => {
         // WHAT: Test 1 - The Happy Path
         // WHY: The Manager must immediately return 200 OK without talking to the Worker.
         it('should return 200 and a success message on logout', async () => {
-            
+
             // HOW: We fake an empty envelope (no data needed for logout)
             const req = {} as any;
 
@@ -263,12 +270,12 @@ describe('Auth Controller - registerController', () => {
 
             // SECURITY CHECK: Did the Manager check the spy camera and officially say 200 OK?
             expect(res.status).toHaveBeenCalledWith(200);
-            
+
             // SECURITY CHECK: Did the Manager send the exact success message back to the client?
-            expect(res.json).toHaveBeenCalledWith({ 
+            expect(res.json).toHaveBeenCalledWith({
                 message: 'Logout Successfully'
             });
-        }); 
+        });
 
     });
 
@@ -338,7 +345,7 @@ describe('Auth Controller - registerController', () => {
             await updateProfileController(req, res, next);
 
             expect(res.status).toHaveBeenCalledWith(200);
-            
+
             const jsonCallArgs = res.json.mock.calls[0][0];
             expect(jsonCallArgs.message).toBe('Profile updated successfully');
             expect(jsonCallArgs.user.name).toBe('Brand New Name');
@@ -478,4 +485,121 @@ describe('Auth Controller - registerController', () => {
             expect(next).toHaveBeenCalled();
         });
     });
+
+    // ==========================================
+    // 8. FORGOT PASSWORD CONTROLLER TESTS
+    // ==========================================
+    describe('forgotPasswordController', () => {
+        let generatePasswordResetTokenSpy: jest.SpyInstance;
+
+        // HOW: We intercept the Service function so the Controller doesn't actually hit the DB
+        beforeEach(() => {
+            generatePasswordResetTokenSpy = jest.spyOn(authService, 'generatePasswordResetToken');
+        });
+
+        afterEach(() => {
+            generatePasswordResetTokenSpy.mockRestore(); // Clean up the spy
+        });
+
+        it('should return 200 and success message when service succeeds', async () => {
+            // VERIFIES: The controller correctly unpacks the email, calls the service, and sends back the exact 200 OK response.
+            const req = { body: { email: 'test@example.com' } } as any;
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            generatePasswordResetTokenSpy.mockResolvedValue({ message: 'If an account exists for this email, a password reset link has been sent.' });
+
+            await forgotPasswordController(req, res, next);
+
+            expect(generatePasswordResetTokenSpy).toHaveBeenCalledWith('test@example.com');
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith({ message: 'If an account exists for this email, a password reset link has been sent.' });
+        });
+
+        it('should call next(error) if email is missing', async () => {
+            // VERIFIES: The controller immediately blocks requests missing the email payload without hitting the service.
+            const req = { body: {} } as any;
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            await forgotPasswordController(req, res, next);
+
+            expect(next).toHaveBeenCalled();
+            expect(next.mock.calls[0][0].message).toBe('Email is required');
+            expect(generatePasswordResetTokenSpy).not.toHaveBeenCalled();
+        });
+
+        it('should call next(error) if service throws an error', async () => {
+            // VERIFIES: The controller catches unexpected service errors and passes them to the global error handler.
+            const req = { body: { email: 'test@example.com' } } as any;
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            const fakeError = new Error('Database exploded');
+            generatePasswordResetTokenSpy.mockRejectedValue(fakeError);
+
+            await forgotPasswordController(req, res, next);
+
+            expect(next).toHaveBeenCalledWith(fakeError);
+        });
+    });
+
+    // ==========================================
+    // 9. RESET PASSWORD CONTROLLER TESTS
+    // ==========================================
+    describe('resetPasswordController', () => {
+        let resetPasswordSpy: jest.SpyInstance;
+
+        beforeEach(() => {
+            resetPasswordSpy = jest.spyOn(authService, 'resetPassword');
+        });
+
+        afterEach(() => {
+            resetPasswordSpy.mockRestore();
+        });
+
+        it('should return 200 and success message when service succeeds', async () => {
+            // VERIFIES: The controller extracts token and newPassword, passes them correctly to the service, and returns 200 OK.
+            const req = { body: { token: 'valid-token', newPassword: 'SecurePassword123' } } as any;
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            resetPasswordSpy.mockResolvedValue({ message: 'Password reset successful.' });
+
+            await resetPasswordController(req, res, next);
+
+            expect(resetPasswordSpy).toHaveBeenCalledWith('valid-token', 'SecurePassword123');
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith({ message: 'Password reset successful.' });
+        });
+
+        it('should call next(error) if token or newPassword is missing', async () => {
+            // VERIFIES: The controller acts as the first line of defense and rejects missing inputs immediately.
+            const req = { body: { token: 'valid-token' } } as any; // Missing newPassword!
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            await resetPasswordController(req, res, next);
+
+            expect(next).toHaveBeenCalled();
+            expect(next.mock.calls[0][0].message).toBe('Token and new password are required');
+            expect(resetPasswordSpy).not.toHaveBeenCalled();
+        });
+
+        it('should call next(error) if service throws an error (e.g. invalid token)', async () => {
+            // VERIFIES: If the service throws a 400 error (like token expired), the controller catches it and sends it to `next()`.
+            const req = { body: { token: 'bad-token', newPassword: 'SecurePassword123' } } as any;
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            const fakeError = new Error('Invalid or expired reset token');
+            resetPasswordSpy.mockRejectedValue(fakeError);
+
+            await resetPasswordController(req, res, next);
+
+            expect(next).toHaveBeenCalledWith(fakeError);
+        });
+    });
+
+
 });

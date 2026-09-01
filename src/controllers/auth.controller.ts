@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 
 // Import the Service function that contains registration business logic
-import { registerUser , loginUser, getUserById, updateUserById, generateEmailVerificationToken, verifyEmailToken} from '../services/auth.service';
+import { registerUser , loginUser, getUserById, updateUserById, generateEmailVerificationToken, verifyEmailToken, generatePasswordResetToken, resetPassword} from '../services/auth.service';
 
 
 // Register Controller
@@ -169,6 +169,56 @@ export const verifyEmailController = async (req: Request, res: Response, next: N
                 isEmailVerified: user.isEmailVerified
             }
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+// ==========================================
+// 8. FORGOT PASSWORD CONTROLLER (Manager)
+// ==========================================
+export const forgotPasswordController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email } = req.body;
+
+        // SECURITY CHECK: Make sure email was provided
+        if (!email) {
+            const error: any = new Error('Email is required');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        // HOW: Hand the email to the Worker
+        const result = await generatePasswordResetToken(email);
+
+        // PURPOSE: Always return the same generic message (Zero-Knowledge)
+        res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+// ==========================================
+// 9. RESET PASSWORD CONTROLLER (Manager)
+// ==========================================
+export const resetPasswordController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { token, newPassword } = req.body;
+
+        // SECURITY CHECK: Make sure both token and newPassword are provided
+        if (!token || !newPassword) {
+            const error: any = new Error('Token and new password are required');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        // HOW: Hand the token and new password to the Worker
+        const result = await resetPassword(token, newPassword);
+
+        // PURPOSE: Tell the user their password has been reset!
+        res.status(200).json(result);
     } catch (error) {
         next(error);
     }

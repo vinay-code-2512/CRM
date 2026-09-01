@@ -4,7 +4,7 @@ import {requireAuth} from '../middleware/auth.middleware'
 import { validateBody } from '../middleware/validation.middleware';
 
 // Import the Controller (Manager) that will handle registration requests
-import { registerController, loginController, logoutController, getProfileController, updateProfileController, sendVerificationController, verifyEmailController } from '../controllers/auth.controller';
+import { registerController, loginController, logoutController, getProfileController, updateProfileController, sendVerificationController, verifyEmailController, forgotPasswordController, resetPasswordController } from '../controllers/auth.controller';
 // Create a new Router instance (a mini-app just for Auth routes)
 const router = express.Router();
 
@@ -57,5 +57,21 @@ router.post('/send-verification', requireAuth, sendVerificationController);
 // WHY GET: The user is simply clicking a link in their email — that's always a GET request!
 // WHY NO BOUNCER: The user might not be logged in when they click the email link!
 router.get('/verify-email', verifyEmailController);
+
+// ==========================================
+// 8. FORGOT PASSWORD ROUTE (PUBLIC)
+// ==========================================
+// WHAT: The endpoint to request a password reset email.
+// WHY PUBLIC: The user is NOT logged in (they forgot their password!).
+// WHY POST: It triggers an action (generates a reset token and "sends" an email).
+router.post('/forgot-password', forgotPasswordController);
+
+// ==========================================
+// 9. RESET PASSWORD ROUTE (PUBLIC)
+// ==========================================
+// WHAT: The endpoint to set a new password using the reset token.
+// WHY PUBLIC: The user is NOT logged in — they're resetting via the email link.
+// WHY POST: It changes the user's password (state-changing action).
+router.post('/reset-password', resetPasswordController);
 
 export default router;
