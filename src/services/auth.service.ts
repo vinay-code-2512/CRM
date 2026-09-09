@@ -1,4 +1,4 @@
-import User from '../models/User';
+import { UserModel } from '../models/UserPrisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken'
 import { ENV } from '../config/env'
@@ -10,7 +10,7 @@ export const registerUser = async (userData: any) => {
     const { name, email, password } = userData;
 
     // 2. Check if the user already exists in the database
-    const existingUser = await User.findOne({ email });
+    const existingUser = await UserModel.findByEmail(email);
 
     // 3. If they exist, stop and throw an error
        if (existingUser) {
@@ -27,7 +27,7 @@ export const registerUser = async (userData: any) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // 5. Create and save the new user in the database
-    const user = await User.create({
+    const user = await UserModel.create({
         name,
         email,
         passwordHash: hashedPassword,
@@ -35,7 +35,7 @@ export const registerUser = async (userData: any) => {
 
     // 6. Return sanitized user data (don't send the passwordHash back!)
     return {
-        _id: user._id,
+        _id: user.id.toString(),
         name: user.name,
         email: user.email,
     };
@@ -50,7 +50,7 @@ export const loginUser = async (userData: any) => {
     // 1. CHECK EMAIL: Does this user exist?
     // We add `.select('+passwordHash')` because in Sprint 0, we told Mongoose 
     // to HIDE the password by default. We need to explicitly ask for it now!
-    const user = await User.findOne({ email }).select('+passwordHash');
+    const user = await UserModel.findByEmail(email);
     
     if (!user) {
         const error: any = new Error('Invalid email or password');
@@ -70,7 +70,7 @@ export const loginUser = async (userData: any) => {
     // 3. SUCCESS: Generate the JWT (The ID Card)
     // We put the user's _id inside the token so we know exactly who is logged in
     const token = jwt.sign(
-        { userId: user._id }, 
+        { userId: user.id.toString() }, 
         ENV.JWT_SECRET as string, 
         { expiresIn: '7d' } // Token expires in 7 days
     );
@@ -79,7 +79,7 @@ export const loginUser = async (userData: any) => {
     return {
         token,
         user: {
-            _id: user._id,
+            _id: user.id.toString(),
             name: user.name,
             email: user.email
         }
@@ -94,7 +94,7 @@ export const getUserById = async (userId: string) => {
     // WHY/PURPOSE: This Worker takes the ID stamped by the Bouncer and finds the user in the database.
     // HOW: We use Mongoose's findById.
     // SECURITY CHECK: We use .select('-passwordHash') to ensure the database NEVER returns the password back to the Manager!
-    const user = await User.findById(userId).select('-passwordHash');
+    const user = await UserModel.findById(Number(userId));
 
     // WHAT: If the token is valid, but the user was deleted from the database yesterday, we must throw an error.
     if (!user) {
@@ -103,7 +103,11 @@ export const getUserById = async (userId: string) => {
         throw error;
     }
 
-    return user;
+    const { passwordHash, ...safeUser } = user;
+    return {
+        ...safeUser,
+        _id: safeUser.id.toString()
+    };
 };
 
 
@@ -115,11 +119,7 @@ export const updateUserById = async (userId: string, updateData: { name: string 
     // HOW: We use Mongoose's findByIdAndUpdate.
     // WHAT: { new: true } tells MongoDB to return the UPDATED user, not the old one.
     // WHAT: runValidators ensures they didn't pass a blank name.
-    const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        { name: updateData.name }, // We only allow 'name' to be updated for now!
-        { new: true, runValidators: true }
-    ).select('-passwordHash');
+    const updatedUser = await UserModel.updateById(Number(userId), { name: updateData.name });
 
     if (!updatedUser) {
         // any lets the variable holds anytype used to bypass 
@@ -129,7 +129,12 @@ export const updateUserById = async (userId: string, updateData: { name: string 
         error.statusCode = 404;
         throw error;
     }
-    return updatedUser;
+    
+    const { passwordHash, ...safeUpdatedUser } = updatedUser;
+    return {
+        ...safeUpdatedUser,
+        _id: safeUpdatedUser.id.toString()
+    };
 };
 
 
@@ -140,7 +145,7 @@ export const generateEmailVerificationToken = async (userId: string) => {
     // WHY/PURPOSE: When a user registers (or requests a resend), we create a secret token
     // and email it to them. They click the link to prove they own the email.
     // STEP 1: Find the user in the database
-    const user = await User.findById(userId);
+    const user = await UserModel.findById(Number(userId));
     if (!user) {
         const error: any = new Error('User not found');
         error.statusCode = 404;
@@ -155,9 +160,10 @@ export const generateEmailVerificationToken = async (userId: string) => {
     // HOW: crypto.createHash('sha256') creates a one-way hash
     const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
     // STEP 4: Save the hashed token and expiry (24 hours from now) to the user's record
-    user.emailVerificationToken = hashedToken;
-    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-    await user.save();
+    await UserModel.updateById(user.id, {
+        emailVerificationToken: hashedToken,
+        emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+    });
     // STEP 5: Return the RAW (unhashed) token — this is what we send in the email link!
     // WHY: The user clicks the link with the raw token. We then hash it again and compare it to the database.
     return rawToken;
@@ -174,10 +180,8 @@ export const verifyEmailToken = async (token: string) => {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     // STEP 2: Find a user whose token matches AND whose token hasn't expired yet
     // HOW: $gt means "greater than" — we check if the expiry date is still in the future!
-    const user = await User.findOne({
-        emailVerificationToken: hashedToken,
-        emailVerificationExpires: { $gt: Date.now() }
-    });
+    const user = await UserModel.findByVerificationToken(hashedToken);
+    
     // STEP 3: If no user found, the token is either invalid or expired
     if (!user) {
         const error: any = new Error('Invalid or expired verification token');
@@ -185,12 +189,23 @@ export const verifyEmailToken = async (token: string) => {
         throw error;
     }
     // STEP 4: Mark the email as verified and clean up the token fields
-    user.isEmailVerified = true;
-    user.emailVerificationToken = undefined;
-    user.emailVerificationExpires = undefined;
-    await user.save();
+    const updatedUser = await UserModel.updateById(user.id, {
+        isEmailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null
+    });
+
+    if (!updatedUser) {
+        const error: any = new Error('Failed to update user');
+        error.statusCode = 500;
+        throw error;
+    }
+
     // STEP 5: Return the verified user
-    return user;
+    return {
+        ...updatedUser,
+        _id: updatedUser.id.toString()
+    };
 };
 
 
@@ -222,7 +237,7 @@ export const generatePasswordResetToken = async (email: string) => {
     };
 
     // HOW: Find the user. We need +passwordHash because we use it for the token secret!
-    const user = await User.findOne({ email }).select('+passwordHash');
+    const user = await UserModel.findByEmail(email);
     
     if (!user) {
         // Stop silently and return the generic message.
@@ -235,7 +250,7 @@ export const generatePasswordResetToken = async (email: string) => {
 
     // Create a short-lived token (15 mins)
     const resetToken = jwt.sign(
-        { userId: user._id },
+        { userId: user.id.toString() },
         secret,
         { expiresIn: '15m' }
     );
@@ -276,7 +291,7 @@ export const resetPassword = async (token: string, newPassword: string) => {
         }
 
         // STEP 2: Fetch the user and get their CURRENT password hash
-        const user = await User.findById(decoded.userId).select('+passwordHash');
+        const user = await UserModel.findById(Number(decoded.userId));
         if (!user) {
             throw new Error('User not found');
         }
@@ -295,8 +310,7 @@ export const resetPassword = async (token: string, newPassword: string) => {
 
         // STEP 6: Save the new password.
         // Because the passwordHash just changed, the previous token is now permanently invalid!
-        user.passwordHash = newHashedPassword;
-        await user.save();
+        await UserModel.updateById(user.id, { passwordHash: newHashedPassword });
 
         return { message: 'Password reset successful.' };
         

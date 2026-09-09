@@ -77,7 +77,7 @@
 **Priority:** High
 **Acceptance Criteria:** User who creates workspace is automatically assigned the `Workspace Owner` role.
 **Dependencies:** US-1.2
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-2.2
 **Story:** As a Workspace Owner or Admin, I want to add registered members, so that my team can collaborate.

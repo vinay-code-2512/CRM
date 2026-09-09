@@ -67,18 +67,33 @@
 ### Create Workspace
 - **Method:** `POST /workspaces`
 - **Auth Required:** Yes
-- **Request Body:** `{ "name": "Design Team", "description": "UI/UX projects" }`
-- **Success (201):** Returns created workspace. Creator receives `Workspace Owner` role (enum: `Owner`).
+- **Request Body:** 
+  ```json
+  { "name": "Design Team", "description": "Optional desc" }
+  ```
+- **Success (201 Created):** 
+  ```json
+  { "id": 1, "name": "Design Team", "description": "Optional desc", "createdAt": "...", "updatedAt": "..." }
+  ```
+- **Note:** The user who creates the workspace is automatically assigned the `Owner` role in the `WorkspaceMember` table.
 
 ### List My Workspaces
 - **Method:** `GET /workspaces`
 - **Auth Required:** Yes
-- **Success (200):** Array of workspaces where the user is an active member.
+- **Success (200 OK):** 
+  ```json
+  [
+    { "id": 1, "name": "Design Team", "description": "Optional desc", "createdAt": "...", "updatedAt": "..." }
+  ]
+  ```
 
 ### Get Workspace
 - **Method:** `GET /workspaces/:id`
-- **Auth Required:** Yes (Workspace Member, Admin, or Workspace Owner)
-- **Success (200):** Workspace details.
+- **Auth Required:** Yes (Returns 403 Forbidden if the user is not a member of the workspace)
+- **Success (200 OK):** 
+  ```json
+  { "id": 1, "name": "Design Team", "description": "Optional desc", "createdAt": "...", "updatedAt": "..." }
+  ```
 
 ### Update Workspace
 - **Method:** `PATCH /workspaces/:id`
