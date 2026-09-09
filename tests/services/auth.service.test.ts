@@ -1,8 +1,8 @@
 // Import mongoose for database connection management
-import mongoose from 'mongoose';
 
 // Import MongoMemoryServer for temporary in-memory database
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import db from '../../src/lib/prisma';
+import { UserModel as User } from '../../src/models/UserPrisma';
 
 // Import the function we are testing
 import { registerUser, loginUser, getUserById, updateUserById, generateEmailVerificationToken, verifyEmailToken, generatePasswordResetToken, resetPassword } from '../../src/services/auth.service';
@@ -11,34 +11,26 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 // Import the User model to directly verify database state
-import User from '../../src/models/User';
 
 // Group all Registration Service tests together
 describe('Auth Service - registerUser', () => {
+    beforeAll(async () => {
+        await db.connect();
+    });
+
 
     // Hold the in-memory MongoDB server instance
-    let mongoServer: MongoMemoryServer;
+    
 
     // Start in-memory MongoDB ONCE before all tests
-    beforeAll(async () => {
-        mongoServer = await MongoMemoryServer.create();
-        const uri = mongoServer.getUri();
-        await mongoose.connect(uri);
-    });
+    
 
     // Clean up after ALL tests finish
-    afterAll(async () => {
-        await mongoose.connection.dropDatabase();
-        await mongoose.connection.close();
-        await mongoServer.stop();
-    });
+    
 
     // Wipe all data after EACH test for isolation
     afterEach(async () => {
-        const collections = mongoose.connection.collections;
-        for (const key in collections) {
-            await collections[key].deleteMany({});
-        }
+        await (db.orm as any).public.User.deleteAll();
     });
 
    // TEST 1: Does registerUser successfully create a user with valid data?
@@ -70,7 +62,7 @@ describe('Auth Service - registerUser', () => {
         });
         // Go directly to the database and find the user we just created
         // This bypasses the Service's return — we're checking what's ACTUALLY stored
-        const userInDb = await User.findOne({ email: 'hash@example.com' });
+        const userInDb = await User.findByEmail('hash@example.com' );
         // The passwordHash in the database should NOT equal the plain password
         // If they're equal, it means hashing failed — a critical security flaw
         // ! means not null
@@ -91,7 +83,7 @@ describe('Auth Service - registerUser', () => {
         });
 
         // Fetch the raw document from MongoDB
-        const userInDb = await User.findOne({ email: 'plain@example.com' });
+        const userInDb = await User.findByEmail('plain@example.com' );
 
         // The document should have 'passwordHash' (the hashed version)
         expect(userInDb!.passwordHash).toBeDefined();
@@ -222,7 +214,7 @@ describe('Auth Service - registerUser', () => {
                 passwordHash: 'hashed123'
             });
             // PURPOSE: Save the ID so we can look it up in the tests!
-            testUserId = user._id.toString();
+            testUserId = user.id.toString();
         });
 
         describe('getUserById', () => {
@@ -240,10 +232,10 @@ describe('Auth Service - registerUser', () => {
 
             it('should throw a 404 error if user does not exist', async () => {
                 // HOW: Generate a fake but correctly formatted MongoDB ID
-                const fakeId = new mongoose.Types.ObjectId().toString();
+                const fakeId = "999999";
 
                 // SECURITY CHECK: Ensure it throws the 404 Error
-                await expect(getUserById(fakeId)).rejects.toThrow('User not found');
+                await expect(getUserById("999999")).rejects.toThrow('User not found');
             });
         });
 
@@ -260,9 +252,9 @@ describe('Auth Service - registerUser', () => {
             });
 
             it('should throw a 404 error if updating a deleted user', async () => {
-                const fakeId = new mongoose.Types.ObjectId().toString();
+                const fakeId = "999999";
 
-                await expect(updateUserById(fakeId, { name: 'Hacker Name' })).rejects.toThrow('User not found');
+                await expect(updateUserById("999999", { name: 'Hacker Name' })).rejects.toThrow('User not found');
             });
         });
     });
@@ -281,7 +273,7 @@ describe('Auth Service - registerUser', () => {
                 passwordHash: 'hashed123',
                 isEmailVerified: false
             });
-            testUserId = user._id.toString();
+            testUserId = user.id.toString();
         });
 
         describe('generateEmailVerificationToken', () => {
@@ -304,7 +296,7 @@ describe('Auth Service - registerUser', () => {
                 const expectedHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
                 // HOW: Go directly to the database and check what was stored
-                const userInDb = await User.findById(testUserId);
+                const userInDb = await User.findById(Number(testUserId));
 
                 // SECURITY CHECK: The stored token must be the HASH, not the raw token!
                 expect(userInDb!.emailVerificationToken).toBe(expectedHash);
@@ -316,17 +308,17 @@ describe('Auth Service - registerUser', () => {
                 await generateEmailVerificationToken(testUserId);
 
                 // HOW: Check the database
-                const userInDb = await User.findById(testUserId);
+                const userInDb = await User.findById(Number(testUserId));
 
                 // WHAT: The expiry must exist and be in the future
                 expect(userInDb!.emailVerificationExpires).toBeDefined();
-                expect(userInDb!.emailVerificationExpires!.getTime()).toBeGreaterThan(Date.now());
+                expect((userInDb!.emailVerificationExpires as any).epochMilliseconds).toBeGreaterThan(Date.now());
             });
 
             it('should throw 404 if user does not exist', async () => {
-                const fakeId = new mongoose.Types.ObjectId().toString();
+                const fakeId = "999999";
 
-                await expect(generateEmailVerificationToken(fakeId)).rejects.toThrow('User not found');
+                await expect(generateEmailVerificationToken("999999")).rejects.toThrow('User not found');
             });
         });
 
@@ -351,11 +343,11 @@ describe('Auth Service - registerUser', () => {
                 await verifyEmailToken(rawToken);
 
                 // STEP 3: Check the database directly
-                const userInDb = await User.findById(testUserId);
+                const userInDb = await User.findById(Number(testUserId));
 
                 // SECURITY CHECK: Token fields must be wiped clean!
-                expect(userInDb!.emailVerificationToken).toBeUndefined();
-                expect(userInDb!.emailVerificationExpires).toBeUndefined();
+                expect(userInDb!.emailVerificationToken).toBeNull();
+                expect(userInDb!.emailVerificationExpires).toBeNull();
             });
 
             it('should throw 400 if token is invalid', async () => {
@@ -368,7 +360,7 @@ describe('Auth Service - registerUser', () => {
                 const rawToken = await generateEmailVerificationToken(testUserId);
 
                 // STEP 2: Manually set the expiry to the PAST (simulate 24 hours passing)
-                await User.findByIdAndUpdate(testUserId, {
+                await User.updateById(Number(testUserId), {
                     emailVerificationExpires: new Date(Date.now() - 1000) // 1 second in the past!
                 });
 
@@ -395,7 +387,7 @@ describe('Auth Service - registerUser', () => {
                 passwordHash: await bcrypt.hash('oldPassword123', 10),
                 isEmailVerified: true
             });
-            testUserId = user._id.toString();
+            testUserId = user.id.toString();
         });
 
         describe('generatePasswordResetToken', () => {
@@ -433,7 +425,7 @@ describe('Auth Service - registerUser', () => {
 
             // HOW: We need to manually generate a valid reset token to test the reset function
             beforeEach(async () => {
-                const user = await User.findById(testUserId);
+                const user = await User.findById(Number(testUserId));
                 // The secret is tied to the current password hash!
                 const secret = process.env.JWT_SECRET + user!.passwordHash;
                 validResetToken = jwt.sign({ userId: testUserId }, secret, { expiresIn: '15m' });
@@ -446,7 +438,7 @@ describe('Auth Service - registerUser', () => {
                 expect(response.message).toBe('Password reset successful.');
 
                 // Verify the database actually updated
-                const updatedUser = await User.findById(testUserId);
+                const updatedUser = await User.findById(Number(testUserId));
                 
                 // Old password should fail
                 const oldPasswordMatch = await bcrypt.compare('oldPassword123', updatedUser!.passwordHash);
@@ -493,7 +485,7 @@ describe('Auth Service - registerUser', () => {
             });
 
             it('should throw 400 if the reset token has expired', async () => {
-                const user = await User.findById(testUserId);
+                const user = await User.findById(Number(testUserId));
                 const secret = process.env.JWT_SECRET + user!.passwordHash;
                 
                 // HOW: Generate a token that expired 1 second ago
@@ -515,7 +507,7 @@ describe('Auth Service - registerUser', () => {
 
             it('should throw 400 if the user in the token no longer exists', async () => {
                 // HOW: Create a token for a fake user ID
-                const fakeId = new mongoose.Types.ObjectId().toString();
+                const fakeId = "999999";
                 // We just use a random secret here since the user doesn't exist to have a hash
                 const fakeUserToken = jwt.sign({ userId: fakeId }, process.env.JWT_SECRET + 'fakehash', { expiresIn: '15m' });
 

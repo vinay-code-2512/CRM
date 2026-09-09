@@ -64,8 +64,8 @@ All sprint work is executed using feature branches. Branch names map directly to
 **Goal:** Implement the top-level organizational units and roles.
 **Duration:** 1-2 Weeks
 **Backlog Items Included:**
-- US-2.1: Workspace creation
-- US-2.2: Add registered members
+- [x] US-2.1: Workspace creation
+- [ ] US-2.2: Add registered members
 - US-2.3: Remove members
 - US-2.4: Workspace deletion
 - US-7.1: Workspace activity recording

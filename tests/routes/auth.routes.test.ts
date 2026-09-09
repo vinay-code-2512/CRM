@@ -1,31 +1,27 @@
 import request from 'supertest';
-import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs'
-import { MongoMemoryServer } from 'mongodb-memory-server';
+import db from '../../src/lib/prisma';
+import { UserModel as User } from '../../src/models/UserPrisma';
 
 // We import our main app! Supertest needs this to send HTTP requests to it.
 import app from '../../src/app';
-import User from '../../src/models/User';
 
 describe('Auth API Routes', () => {
-    let mongoServer: MongoMemoryServer;
+    beforeAll(async () => {
+        await db.connect();
+    });
+
+    
 
     // Standard database setup (Start the server)
-    beforeAll(async () => {
-        mongoServer = await MongoMemoryServer.create();
-        await mongoose.connect(mongoServer.getUri());
-    });
+    
 
     // Standard database cleanup (Stop the server)
-    afterAll(async () => {
-        await mongoose.connection.dropDatabase();
-        await mongoose.connection.close();
-        await mongoServer.stop();
-    });
+    
 
     // Wipe users before every test
     afterEach(async () => {
-        await User.deleteMany({});
+        await (db.orm as any).public.User.deleteAll();
     });
 
     // API Tests will go here...
@@ -53,7 +49,7 @@ describe('Auth API Routes', () => {
         expect(response.body).not.toHaveProperty('passwordHash');
 
         // 5. DATABASE CHECK: Let's manually look in MongoDB to ensure the user is actually there!
-        const userInDb = await User.findOne({ email: 'api@example.com' });
+        const userInDb = await User.findByEmail('api@example.com' );
         expect(userInDb).not.toBeNull();
         expect(userInDb!.name).toBe('API Test User');
     });
@@ -439,11 +435,11 @@ describe('Auth API Routes', () => {
 
             // STEP 2: Generate a reset token manually (same way the service does)
             const jwt = require('jsonwebtoken');
-            const User = require('../../src/models/User').default;
+            const User = require('../../src/models/UserPrisma').UserModel;
 
-            const user = await User.findOne({ email: testEmail }).select('+passwordHash');
+            const user = await User.findByEmail(testEmail);
             const secret = process.env.JWT_SECRET + user.passwordHash;
-            const resetToken = jwt.sign({ userId: user._id }, secret, { expiresIn: '15m' });
+            const resetToken = jwt.sign({ userId: user.id }, secret, { expiresIn: '15m' });
 
             // STEP 3: Reset the password
             const resetRes = await request(app)

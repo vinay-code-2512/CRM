@@ -1,0 +1,33 @@
+// use prisma-next
+
+model User {
+  id                       Int      @id @default(autoincrement())
+  name                     String
+  email                    String   @unique
+  passwordHash             String
+  isEmailVerified          Boolean  @default(false)
+  emailVerificationToken   String?
+  emailVerificationExpires DateTime?
+  profileData              Json?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime
+}
+
+model Workspace {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+}
+
+model WorkspaceMember {
+  id          Int      @id @default(autoincrement())
+  workspaceId Int
+  userId      Int
+  role        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+
+  @@unique([workspaceId, userId])
+}

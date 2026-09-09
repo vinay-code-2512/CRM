@@ -4,7 +4,7 @@ dotenv.config();
 
 export const ENV = {
   PORT: process.env.PORT || '3000',
-  MONGO_URI: process.env.MONGO_URI,
+
   JWT_SECRET: process.env.JWT_SECRET,
   NODE_ENV: process.env.NODE_ENV || 'development',
   CORS_ORIGIN: process.env.CORS_ORIGIN || '*'
@@ -12,7 +12,7 @@ export const ENV = {
 
 // Strict environment validation
 export function validateEnv() {
-  const required = ['MONGO_URI', 'JWT_SECRET'];
+  const required = ['JWT_SECRET'];
   const missing = required.filter((key) => !ENV[key as keyof typeof ENV]);
 
   if (missing.length > 0) {
