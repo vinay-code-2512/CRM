@@ -1,6 +1,7 @@
 import request from 'supertest';
 import db from '../../src/lib/prisma';
 import app from '../../src/app';
+import { UserModel } from '../../src/models/UserPrisma';
 
 describe('Workspace API Routes', () => {
     let validToken: string;
@@ -160,5 +161,66 @@ describe('Workspace API Routes', () => {
             expect(response.status).toBe(401);
         });
     });
+
+
+
+        // ==========================================
+    // 3. POST /api/v1/workspaces/:id/members
+    // ==========================================
+    describe('POST /api/v1/workspaces/:id/members', () => {
+        let workspaceId: number;
+        let targetUser: any;
+
+        beforeEach(async () => {
+            // HOW: We need an actual workspace in the DB to test adding members
+            const createRes = await request(app)
+                .post('/api/v1/workspaces')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ name: 'Route Test Workspace', description: '' });
+            
+            workspaceId = createRes.body.id;
+
+            // HOW: Create a target user to add
+            targetUser = await UserModel.create({
+                name: 'Route Target',
+                email: `routetarget${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+        });
+
+        // TEST 1: Happy Path
+        it('should return 201 and membership data on successful member addition', async () => {
+            const response = await request(app)
+                .post(`/api/v1/workspaces/${workspaceId}/members`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ email: targetUser.email, role: 'Member' });
+
+            expect(response.status).toBe(201);
+            expect(response.body.userId).toBe(targetUser.id);
+            expect(response.body.role).toBe('Member');
+        });
+
+        // TEST 2: Validation Check
+        it('should return 400 if email or role are missing from the body', async () => {
+            const response = await request(app)
+                .post(`/api/v1/workspaces/${workspaceId}/members`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ email: targetUser.email }); // missing role
+
+            // SECURITY CHECK: validateBody middleware should intercept this
+            expect(response.status).toBe(400);
+        });
+
+        // TEST 3: Auth Check
+        it('should return 401 if no auth token is provided', async () => {
+            const response = await request(app)
+                .post(`/api/v1/workspaces/${workspaceId}/members`)
+                .send({ email: targetUser.email, role: 'Member' });
+
+            // SECURITY CHECK: requireAuth middleware should intercept this
+            expect(response.status).toBe(401);
+        });
+    });
+
 
 });

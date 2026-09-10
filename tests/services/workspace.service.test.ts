@@ -1,6 +1,7 @@
 import db from '../../src/lib/prisma';
 import { UserModel } from '../../src/models/UserPrisma';
-import { createWorkspace, getUserWorkspaces } from '../../src/services/workspace.service';
+import { WorkspaceMemberModel } from '../../src/models/WorkspaceMemberPrisma';
+import { createWorkspace, getUserWorkspaces, addWorkspaceMember } from '../../src/services/workspace.service';
 
 describe('Workspace Service', () => {
     let testUserId: string;
@@ -123,4 +124,100 @@ describe('Workspace Service', () => {
             expect(workspaces[0].name).toBe('My Workspace');
         });
     });
+    
+
+
+
+
+
+        // ==========================================
+    // 3. addWorkspaceMember TESTS
+    // ==========================================
+    describe('addWorkspaceMember', () => {
+        let workspaceId: number;
+        let targetUser: any;
+
+        beforeEach(async () => {
+            // Setup a base workspace owned by testUserId
+            const workspace = await createWorkspace(testUserId, { name: 'Add Member Test Workspace', description: '' });
+            workspaceId = workspace.id;
+
+            // Setup a target user to be added
+            targetUser = await UserModel.create({
+                name: 'Target User',
+                email: `target${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+        });
+
+        // 1. Successful addition by a Workspace Owner.
+        // 9. Verify that the WorkspaceMember record is actually created with the correct workspaceId, userId, and role.
+        it('should allow Workspace Owner to add a member and create the record', async () => {
+            const membership = await addWorkspaceMember(testUserId, String(workspaceId), targetUser.email, 'Member');
+            
+            expect(membership.workspaceId).toBe(workspaceId);
+            expect(membership.userId).toBe(targetUser.id);
+            expect(membership.role).toBe('Member');
+
+            // Verify DB record using WorkspaceMemberModel
+            const dbRecord = await WorkspaceMemberModel.findByWorkspaceAndUser(workspaceId, targetUser.id);
+            expect(dbRecord).not.toBeNull();
+            expect(dbRecord!.role).toBe('Member');
+        });
+
+        // 2. Successful addition by a Workspace Admin.
+        it('should allow Workspace Admin to add a member', async () => {
+            // First, make another user an Admin
+            const adminUser = await UserModel.create({ name: 'Admin', email: `admin${Math.random()}@test.com`, passwordHash: 'fake' });
+            await WorkspaceMemberModel.create({ workspaceId, userId: adminUser.id, role: 'Admin' });
+            
+            const membership = await addWorkspaceMember(String(adminUser.id), String(workspaceId), targetUser.email, 'Member');
+            expect(membership.userId).toBe(targetUser.id);
+        });
+
+        // 3. Reject a requester who is a normal Workspace Member with 403.
+        it('should reject a requester who is a normal Workspace Member with 403', async () => {
+            const memberUser = await UserModel.create({ name: 'Member', email: `member${Math.random()}@test.com`, passwordHash: 'fake' });
+            await WorkspaceMemberModel.create({ workspaceId, userId: memberUser.id, role: 'Member' });
+            
+            await expect(addWorkspaceMember(String(memberUser.id), String(workspaceId), targetUser.email, 'Member'))
+                .rejects.toMatchObject({ statusCode: 403 });
+        });
+
+        // 4. Reject a requester who is not a member of the workspace with 403.
+        it('should reject a requester who is not a member of the workspace with 403', async () => {
+            const randoUser = await UserModel.create({ name: 'Rando', email: `rando${Math.random()}@test.com`, passwordHash: 'fake' });
+            
+            await expect(addWorkspaceMember(String(randoUser.id), String(workspaceId), targetUser.email, 'Member'))
+                .rejects.toMatchObject({ statusCode: 403 });
+        });
+
+        // 5. Reject an unregistered target email with 404.
+        it('should reject an unregistered target email with 404', async () => {
+            await expect(addWorkspaceMember(testUserId, String(workspaceId), 'nobody@test.com', 'Member'))
+                .rejects.toMatchObject({ statusCode: 404 });
+        });
+
+        // 6. Reject a target user who is already a member with 400.
+        it('should reject a target user who is already a member with 400', async () => {
+            await WorkspaceMemberModel.create({ workspaceId, userId: targetUser.id, role: 'Member' });
+            
+            await expect(addWorkspaceMember(testUserId, String(workspaceId), targetUser.email, 'Member'))
+                .rejects.toMatchObject({ statusCode: 400 });
+        });
+
+        // 7. Reject an invalid target role.
+        it('should reject an invalid target role with 400', async () => {
+            await expect(addWorkspaceMember(testUserId, String(workspaceId), targetUser.email, 'SuperAdmin' as any))
+                .rejects.toMatchObject({ statusCode: 400 });
+        });
+
+        // 8. Allow only Admin or Member as the role assigned to the new member.
+        it('should reject assigning the Owner role with 400', async () => {
+            await expect(addWorkspaceMember(testUserId, String(workspaceId), targetUser.email, 'Owner'))
+                .rejects.toMatchObject({ statusCode: 400 });
+        });
+    });
+
 });
+ 

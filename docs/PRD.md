@@ -6,7 +6,7 @@
 ## 1. Product Vision
 SyncForge aims to deliver an intuitive and fast project management tool for software teams. By focusing on a clean UI and core project management features, it reduces the complexity often found in enterprise tools while maintaining essential organization capabilities.
 
-## 2. Functional Requirements (MVP)
+## 2. Functional Requirements (MVP) 
 
 ### 2.1 User Management
 - **Registration**: Users sign up using name, email, and password.

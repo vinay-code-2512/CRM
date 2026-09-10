@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 
 // Import the Service functions that contain workspace business logic
-import { createWorkspace, getUserWorkspaces, getWorkspaceById } from '../services/workspace.service';
+import { createWorkspace, getUserWorkspaces, getWorkspaceById, addWorkspaceMember } from '../services/workspace.service';
 
 // ==========================================
 // 1. CREATE WORKSPACE CONTROLLER
@@ -59,6 +59,32 @@ export const getWorkspaceByIdController = async (req: Request, res: Response, ne
 
         res.status(200).json(workspace);
     } catch (error) {
+        next(error);
+    }
+};
+
+// ==========================================
+// 4. ADD WORKSPACE MEMBER CONTROLLER
+// ==========================================
+export const addWorkspaceMemberController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // WHAT: Grab the Bouncer's verified user ID (the requester)
+        const requesterId = req.user!.userId;
+
+        // WHAT: Grab the target Workspace ID from the URL (/workspaces/:id/members)
+        const workspaceId = String(req.params.id);
+
+        // WHAT: Grab the payload from the body
+        // WHY: We expect 'email' and 'role' to be provided and validated by middleware.
+        const { email, role } = req.body;
+
+        // HOW: Hand the data off to the Service (the Worker) to do the heavy lifting
+        const newMembership = await addWorkspaceMember(requesterId, workspaceId, email, role);
+
+        // PURPOSE: Return the newly created membership record with a 201 (Created) status
+        res.status(201).json(newMembership);
+    } catch (error) {
+        // SECURITY CHECK: Slide any business logic errors to the Global Error Handler
         next(error);
     }
 };
