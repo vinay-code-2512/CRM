@@ -4,91 +4,91 @@
 **Version:** 1.0
 
 ## 1. Data Model Diagram
-This diagram illustrates the core collections, relationships, and essential fields for the SyncForge MVP. It is strictly based on the approved Database Design structure.
+This diagram illustrates the core tables, relationships, and essential fields for the SyncForge MVP. It is strictly based on the approved Database Design structure.
 
 ```mermaid
 erDiagram
     %% Entities
     USER {
-        ObjectId _id PK
+        Int id PK
         String name
         String email "unique"
         String passwordHash
         Boolean isEmailVerified
-        Object profileData
-        Date createdAt
-        Date updatedAt
+        Json profileData
+        DateTime createdAt
+        DateTime updatedAt
     }
 
     WORKSPACE {
-        ObjectId _id PK
+        Int id PK
         String name
         String description
-        Date createdAt
-        Date updatedAt
+        DateTime createdAt
+        DateTime updatedAt
     }
 
     WORKSPACE_MEMBER {
-        ObjectId _id PK
-        ObjectId workspaceId FK
-        ObjectId userId FK
+        Int id PK
+        Int workspaceId FK
+        Int userId FK
         String role "Owner | Admin | Member"
-        Date createdAt
-        Date updatedAt
+        DateTime createdAt
+        DateTime updatedAt
     }
 
     PROJECT {
-        ObjectId _id PK
-        ObjectId workspaceId FK
+        Int id PK
+        Int workspaceId FK
         String name
         String description
         Boolean isArchived
-        Date createdAt
-        Date updatedAt
+        DateTime createdAt
+        DateTime updatedAt
     }
 
     PROJECT_MEMBER {
-        ObjectId _id PK
-        ObjectId projectId FK
-        ObjectId userId FK
-        Date createdAt
-        Date updatedAt
+        Int id PK
+        Int projectId FK
+        Int userId FK
+        DateTime createdAt
+        DateTime updatedAt
     }
 
     TASK {
-        ObjectId _id PK
-        ObjectId projectId FK
+        Int id PK
+        Int projectId FK
         String title
         String description
         String status "Todo | In Progress | Review | Done"
         String priority "Low | Medium | High | Urgent"
-        ObjectId assigneeId FK "optional"
-        ObjectId createdBy FK
-        Array labels
-        Date dueDate
-        Date createdAt
-        Date updatedAt
+        Int assigneeId FK "optional"
+        Int createdBy FK
+        String[] labels
+        DateTime dueDate
+        DateTime createdAt
+        DateTime updatedAt
     }
 
     TASK_COMMENT {
-        ObjectId _id PK
-        ObjectId taskId FK
-        ObjectId authorId FK
+        Int id PK
+        Int taskId FK
+        Int authorId FK
         String content
-        Date createdAt
-        Date updatedAt
+        DateTime createdAt
+        DateTime updatedAt
     }
 
     ACTIVITY_LOG {
-        ObjectId _id PK
-        ObjectId workspaceId FK "optional"
-        ObjectId projectId FK "optional"
-        ObjectId actorId FK
+        Int id PK
+        Int workspaceId FK "optional"
+        Int projectId FK "optional"
+        Int actorId FK
         String action
         String targetEntity
-        ObjectId targetId
-        Object metadata
-        Date createdAt
+        Int targetId
+        Json metadata
+        DateTime createdAt
     }
 
     %% Relationships
@@ -115,11 +115,11 @@ erDiagram
 ## 2. Relationship Notes
 
 ### Workspace Memberships (User ↔ Workspace)
-- **Implementation:** Resolved via the dedicated `WORKSPACE_MEMBER` collection rather than an embedded array (to ensure high scalability).
+- **Implementation:** Resolved via the dedicated `WORKSPACE_MEMBER` table rather than an embedded array (to ensure high scalability).
 - **Access Boundary:** A user must possess an active `WORKSPACE_MEMBER` record to access the workspace. The `role` (Owner, Admin, or Member) on this record determines their high-level permissions.
 
 ### Project Memberships (User ↔ Project)
-- **Implementation:** Resolved via the dedicated `PROJECT_MEMBER` collection.
+- **Implementation:** Resolved via the dedicated `PROJECT_MEMBER` table.
 - **Access Boundary:** Project authorization (access to tasks/comments) explicitly requires `PROJECT_MEMBER` presence, even for Workspace Owners and Admins.
 - **Roles:** Project-specific roles do not exist; standard authorization bubbles down from the workspace level. A user must be an active workspace member before being added as a project member.
 
@@ -128,7 +128,7 @@ erDiagram
 - **Assignment:** The `assigneeId` is optional (0..1 relationship from Task to User). A task does not require an assignee, but can be assigned to a valid project member.
 
 ### Activity Tracking
-- **Loose Coupling:** The `ACTIVITY_LOG` collection acts as an append-only audit trail.
+- **Loose Coupling:** The `ACTIVITY_LOG` table acts as an append-only audit trail.
 - **References:** An activity is strictly tied to an `actorId` (the user performing the action), but links to `workspaceId` and `projectId` are optional depending on the scope of the event (e.g., adding a workspace member only requires a workspace reference, whereas updating a task status requires both).
 - **Flexibility:** `targetEntity` and `targetId` dynamically point to the entity that was acted upon (e.g., a specific Task or Project ID).
 

@@ -1,12 +1,13 @@
 import db from '../../src/lib/prisma';
 import { UserModel } from '../../src/models/UserPrisma';
-import { createWorkspaceController, getWorkspacesController } from '../../src/controllers/workspace.controller';
+import { createWorkspaceController, getWorkspacesController, addWorkspaceMemberController } from '../../src/controllers/workspace.controller';
+
 
 describe('Workspace Controller', () => {
     let testUserId: string;
 
     beforeAll(async () => {
-        try { await db.connect(); } catch(e) {}
+        try { await db.connect(); } catch (e) { }
     });
 
     // Before each test: create a fresh user
@@ -162,4 +163,80 @@ describe('Workspace Controller', () => {
             expect(res.json.mock.calls[0][0]).toEqual([]);
         });
     });
+
+
+
+    // ==========================================
+    // 3. ADD WORKSPACE MEMBER CONTROLLER TESTS
+    // ==========================================
+    describe('addWorkspaceMemberController', () => {
+        let workspaceId: number;
+        let targetUser: any;
+
+        beforeEach(async () => {
+            // HOW: We need a workspace and a target user for the tests
+            const req = { user: { userId: testUserId }, body: { name: 'Controller Workspace', description: '' } } as any;
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            await createWorkspaceController(req, res, next);
+            workspaceId = res.json.mock.calls[0][0].id;
+
+            targetUser = await UserModel.create({
+                name: 'Controller Target',
+                email: `controllertarget${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+        });
+
+        // TEST 1: Happy Path — does it return 201 Created and the new membership?
+        it('should return 201 and membership data on successful addition', async () => {
+            // HOW: Fake the Bouncer providing testUserId, the URL param providing workspaceId, and the Body providing target data.
+            const req = {
+                user: { userId: testUserId },
+                params: { id: String(workspaceId) },
+                body: { email: targetUser.email, role: 'Member' }
+            } as any;
+
+            const res = {
+                status: jest.fn().mockReturnThis(),
+                json: jest.fn()
+            } as any;
+
+            const next = jest.fn() as any;
+
+            // PURPOSE: Execute the new Controller directly
+            await addWorkspaceMemberController(req, res, next);
+
+            // SECURITY CHECK: Did it return 201 Created?
+            expect(res.status).toHaveBeenCalledWith(201);
+
+            // SECURITY CHECK: Did it return the expected membership record?
+            const sentData = res.json.mock.calls[0][0];
+            expect(sentData.workspaceId).toBe(workspaceId);
+            expect(sentData.userId).toBe(targetUser.id);
+            expect(sentData.role).toBe('Member');
+        });
+
+        // TEST 2: Error Path — does it slide errors to next()?
+        it('should call next(error) if the target user does not exist', async () => {
+            const req = {
+                user: { userId: testUserId },
+                params: { id: String(workspaceId) },
+                body: { email: 'ghost@test.com', role: 'Member' }
+            } as any;
+
+            const res = { status: jest.fn().mockReturnThis(),json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            await addWorkspaceMemberController(req, res, next);
+
+            // SECURITY CHECK: If there is an error, the Controller must NEVER crash the server. It must slide it to next().
+            expect(next).toHaveBeenCalled();
+            const passedError = next.mock.calls[0][0];
+            expect(passedError.statusCode).toBe(404);
+            expect(passedError.message).toBe('User not found or not registered.');
+        });
+    });
+
 });

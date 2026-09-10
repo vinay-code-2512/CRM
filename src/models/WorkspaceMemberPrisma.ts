@@ -14,7 +14,7 @@ export interface WorkspaceMemberCreateInput {
   userId: number;
   role: 'Owner' | 'Admin' | 'Member';
 }
-
+ 
 export const WorkspaceMemberModel = {
   get _orm() {
     return (db.orm as any).public.WorkspaceMember;
