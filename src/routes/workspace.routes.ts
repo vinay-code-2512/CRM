@@ -1,7 +1,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validation.middleware';
-import { createWorkspaceController, getWorkspacesController, getWorkspaceByIdController, addWorkspaceMemberController } from '../controllers/workspace.controller';
+import { createWorkspaceController, getWorkspacesController, getWorkspaceByIdController, addWorkspaceMemberController, removeWorkspaceMemberController } from '../controllers/workspace.controller';
 
 const router = express.Router();
 
@@ -16,5 +16,8 @@ router.get('/:id', requireAuth, getWorkspaceByIdController);
 
 // POST /api/v1/workspaces/:id/members — Add a registered user to the workspace (Protected)
 router.post('/:id/members', requireAuth, validateBody(['email', 'role']), addWorkspaceMemberController);
+
+// DELETE /api/v1/workspaces/:workspaceId/members/:userId — Remove a member from the workspace (Protected)
+router.delete('/:workspaceId/members/:userId', requireAuth, removeWorkspaceMemberController);
 
 export default router;

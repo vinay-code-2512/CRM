@@ -158,7 +158,7 @@
 
 **Dependencies:** US-2.2
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-2.4
 

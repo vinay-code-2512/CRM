@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 
 // Import the Service functions that contain workspace business logic
-import { createWorkspace, getUserWorkspaces, getWorkspaceById, addWorkspaceMember } from '../services/workspace.service';
+import { createWorkspace, getUserWorkspaces, getWorkspaceById, addWorkspaceMember, removeWorkspaceMember } from '../services/workspace.service';
 
 // ==========================================
 // 1. CREATE WORKSPACE CONTROLLER
@@ -83,6 +83,29 @@ export const addWorkspaceMemberController = async (req: Request, res: Response, 
 
         // PURPOSE: Return the newly created membership record with a 201 (Created) status
         res.status(201).json(newMembership);
+    } catch (error) {
+        // SECURITY CHECK: Slide any business logic errors to the Global Error Handler
+        next(error);
+    }
+};
+
+// ==========================================
+// 5. REMOVE WORKSPACE MEMBER CONTROLLER
+// ==========================================
+export const removeWorkspaceMemberController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // WHAT: Grab the Bouncer's verified user ID (the requester)
+        const requesterId = req.user!.userId;
+
+        // WHAT: Grab both the target Workspace ID and target User ID from the URL (/workspaces/:workspaceId/members/:userId)
+        const workspaceId = String(req.params.workspaceId);
+        const userId = String(req.params.userId);
+
+        // HOW: Hand the IDs off to the Service (the Worker) to execute the business rules
+        await removeWorkspaceMember(requesterId, workspaceId, userId);
+
+        // PURPOSE: Return a success message with a 200 (OK) status
+        res.status(200).json({ message: 'Member removed successfully' });
     } catch (error) {
         // SECURITY CHECK: Slide any business logic errors to the Global Error Handler
         next(error);

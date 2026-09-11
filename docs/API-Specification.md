@@ -216,15 +216,22 @@
 
 - **Constraints:** Only Workspace Owners can manage roles. Cannot change the sole Workspace Owner's role. Keep `Owner` as the workspace role value.
 
+
 ### Remove Member
 
 - **Method:** `DELETE /workspaces/:workspaceId/members/:userId`
+- **Purpose:** Remove a member from the workspace.
+- **Auth Required:** Yes (Authenticated requester is identified from the JWT).
+- **Authorization:** Only Workspace Owner or Admin of the target workspace can perform this operation.
+- **Path Parameters:** 
+  - `workspaceId` (integer): Target workspace ID.
+  - `userId` (integer): ID of the user to be removed.
+- **Success (200 OK):**
+  ```json
+  {
+    "message": "Member removed successfully"
+  }
 
-- **Auth Required:** Yes (Workspace Owner or Admin)
-
-- **Success (200):** `{ "message": "Member removed" }`
-
-- **Constraints:** Cannot remove the sole Workspace Owner. Cascades loss of project access.
 
 ---
 

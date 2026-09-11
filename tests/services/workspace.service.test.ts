@@ -1,7 +1,7 @@
 import db from '../../src/lib/prisma';
 import { UserModel } from '../../src/models/UserPrisma';
 import { WorkspaceMemberModel } from '../../src/models/WorkspaceMemberPrisma';
-import { createWorkspace, getUserWorkspaces, addWorkspaceMember } from '../../src/services/workspace.service';
+import { createWorkspace, getUserWorkspaces, addWorkspaceMember, removeWorkspaceMember } from '../../src/services/workspace.service';
 
 describe('Workspace Service', () => {
     let testUserId: string;
@@ -126,10 +126,6 @@ describe('Workspace Service', () => {
     });
     
 
-
-
-
-
         // ==========================================
     // 3. addWorkspaceMember TESTS
     // ==========================================
@@ -219,5 +215,103 @@ describe('Workspace Service', () => {
         });
     });
 
+
+    // ==========================================
+    // 4. removeWorkspaceMember TESTS
+    // ==========================================
+    describe('removeWorkspaceMember', () => {
+        let workspaceId: number;
+        let targetUser: any;
+        let targetUserId: string;
+
+        beforeEach(async () => {
+            // Setup a base workspace owned by testUserId
+            const workspace = await createWorkspace(testUserId, { name: 'Remove Member Test Workspace', description: '' });
+            workspaceId = workspace.id;
+
+            // Setup a target user
+            targetUser = await UserModel.create({
+                name: 'Target User',
+                email: `targetremove${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+            targetUserId = String(targetUser.id);
+            
+            // Pre-add the target user as a Member manually so we can test removing them
+            await WorkspaceMemberModel.create({
+                workspaceId,
+                userId: targetUser.id,
+                role: 'Member'
+            });
+        });
+
+        // 1. Owner can remove a Member successfully.
+        // Verify that the target WorkspaceMember record is actually deleted (but user remains).
+        it('should allow Workspace Owner to remove a member and delete the record', async () => {
+            await removeWorkspaceMember(testUserId, String(workspaceId), targetUserId);
+            
+            // Verify DB record using WorkspaceMemberModel is gone
+            const dbRecord = await WorkspaceMemberModel.findByWorkspaceAndUser(workspaceId, targetUser.id);
+            expect(dbRecord).toBeNull();
+            
+            // Verify the User themselves wasn't accidentally deleted
+            const userCheck = await UserModel.findById(targetUser.id);
+            expect(userCheck).not.toBeNull();
+        });
+
+        // 2. Admin can remove a Member successfully.
+        it('should allow Workspace Admin to remove a member', async () => {
+            // First, make another user an Admin
+            const adminUser = await UserModel.create({ name: 'Admin', email: `adminrm${Math.random()}@test.com`, passwordHash: 'fake' });
+            await WorkspaceMemberModel.create({ workspaceId, userId: adminUser.id, role: 'Admin' });
+            
+            await removeWorkspaceMember(String(adminUser.id), String(workspaceId), targetUserId);
+            
+            const dbRecord = await WorkspaceMemberModel.findByWorkspaceAndUser(workspaceId, targetUser.id);
+            expect(dbRecord).toBeNull();
+        });
+
+        // 3. Normal Member requester gets 403.
+        it('should reject a requester who is a normal Workspace Member with 403', async () => {
+            const memberUser = await UserModel.create({ name: 'Member', email: `memberrm${Math.random()}@test.com`, passwordHash: 'fake' });
+            await WorkspaceMemberModel.create({ workspaceId, userId: memberUser.id, role: 'Member' });
+            
+            await expect(removeWorkspaceMember(String(memberUser.id), String(workspaceId), targetUserId))
+                .rejects.toMatchObject({ statusCode: 403 });
+        });
+
+        // 4. Non-member requester gets 403.
+        it('should reject a requester who is not a member of the workspace with 403', async () => {
+            const randoUser = await UserModel.create({ name: 'Rando', email: `randorm${Math.random()}@test.com`, passwordHash: 'fake' });
+            
+            await expect(removeWorkspaceMember(String(randoUser.id), String(workspaceId), targetUserId))
+                .rejects.toMatchObject({ statusCode: 403 });
+        });
+
+        // 5. Target user is not a member of the workspace -> 404.
+        it('should reject if the target user is not a member with 404', async () => {
+            const nonMemberUser = await UserModel.create({ name: 'Not In Workspace', email: `notinws${Math.random()}@test.com`, passwordHash: 'fake' });
+            
+            await expect(removeWorkspaceMember(testUserId, String(workspaceId), String(nonMemberUser.id)))
+                .rejects.toMatchObject({ statusCode: 404 });
+        });
+
+        // 6. Target is the Workspace Owner -> 400.
+        it('should reject attempting to remove the Workspace Owner with 400', async () => {
+            await expect(removeWorkspaceMember(testUserId, String(workspaceId), testUserId))
+                .rejects.toMatchObject({ statusCode: 400 });
+        });
+
+        // 7. Admin attempting to remove the Owner -> 400.
+        it('should reject an Admin attempting to remove the Workspace Owner with 400', async () => {
+            const adminUser = await UserModel.create({ name: 'Admin', email: `adminrm2${Math.random()}@test.com`, passwordHash: 'fake' });
+            await WorkspaceMemberModel.create({ workspaceId, userId: adminUser.id, role: 'Admin' });
+            
+            await expect(removeWorkspaceMember(String(adminUser.id), String(workspaceId), testUserId))
+                .rejects.toMatchObject({ statusCode: 400 });
+        });
+    });
+
+    
 });
  

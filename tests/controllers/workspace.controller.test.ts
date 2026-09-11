@@ -1,6 +1,6 @@
 import db from '../../src/lib/prisma';
 import { UserModel } from '../../src/models/UserPrisma';
-import { createWorkspaceController, getWorkspacesController, addWorkspaceMemberController } from '../../src/controllers/workspace.controller';
+import { createWorkspaceController, getWorkspacesController, addWorkspaceMemberController, removeWorkspaceMemberController } from '../../src/controllers/workspace.controller';
 
 
 describe('Workspace Controller', () => {
@@ -236,6 +236,76 @@ describe('Workspace Controller', () => {
             const passedError = next.mock.calls[0][0];
             expect(passedError.statusCode).toBe(404);
             expect(passedError.message).toBe('User not found or not registered.');
+        });
+    });
+
+
+        // ==========================================
+    // 4. REMOVE WORKSPACE MEMBER CONTROLLER TESTS
+    // ==========================================
+    describe('removeWorkspaceMemberController', () => {
+        let workspaceId: number;
+        let targetUser: any;
+
+        beforeEach(async () => {
+            // Setup: Create a workspace and add a target user so we have someone to remove
+            const req = { user: { userId: testUserId }, body: { name: 'Remove Controller Workspace', description: '' } } as any;
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            await createWorkspaceController(req, res, next);
+            workspaceId = res.json.mock.calls[0][0].id;
+
+            targetUser = await UserModel.create({
+                name: 'Controller Target RM',
+                email: `controllerrm${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+
+            const addReq = {
+                user: { userId: testUserId },
+                params: { id: String(workspaceId) },
+                body: { email: targetUser.email, role: 'Member' }
+            } as any;
+            await addWorkspaceMemberController(addReq, res, next);
+        });
+
+        // TEST 1: Happy Path
+        it('should return 200 and success message on successful removal', async () => {
+            // HOW: Fake the Bouncer providing testUserId, and the URL params providing the target details
+            const req = {
+                user: { userId: testUserId },
+                params: { workspaceId: String(workspaceId), userId: String(targetUser.id) }
+            } as any;
+
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            // PURPOSE: Execute the Controller
+            await removeWorkspaceMemberController(req, res, next);
+
+            // SECURITY CHECK: Did it return 200 OK and our success message?
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json.mock.calls[0][0]).toEqual({ message: 'Member removed successfully' });
+        });
+
+        // TEST 2: Error Path
+        it('should call next(error) if trying to remove the owner', async () => {
+            const req = {
+                user: { userId: testUserId },
+                params: { workspaceId: String(workspaceId), userId: testUserId } // Trying to remove self (Owner)
+            } as any;
+
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            await removeWorkspaceMemberController(req, res, next);
+
+            // SECURITY CHECK: The Controller must slide the Service error safely to next()
+            expect(next).toHaveBeenCalled();
+            const passedError = next.mock.calls[0][0];
+            expect(passedError.statusCode).toBe(400);
+            expect(passedError.message).toBe('Cannot remove the Workspace Owner.');
         });
     });
 
