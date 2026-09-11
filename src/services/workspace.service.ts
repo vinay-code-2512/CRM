@@ -3,27 +3,28 @@ import { WorkspaceMemberModel } from '../models/WorkspaceMemberPrisma';
 import { UserModel } from '../models/UserPrisma';
 
 
-export const createWorkspace = async (userId:string, data:{
-    name:string;  description:string }) => {
-        const workspace = await WorkspaceModel.create({
-            name:data.name,
-            description:data.description,
-        })
+export const createWorkspace = async (userId: string, data: {
+    name: string; description: string
+}) => {
+    const workspace = await WorkspaceModel.create({
+        name: data.name,
+        description: data.description,
+    })
 
-        await WorkspaceMemberModel.create({
-            workspaceId: workspace.id,
-            userId: Number(userId),
-            role:'Owner'
-        })
+    await WorkspaceMemberModel.create({
+        workspaceId: workspace.id,
+        userId: Number(userId),
+        role: 'Owner'
+    })
 
-        return workspace
+    return workspace
 
-} 
+}
 
-export const getUserWorkspaces = async (userId:string) => {
+export const getUserWorkspaces = async (userId: string) => {
 
     const memberships = await WorkspaceMemberModel.findByUserId(Number(userId))
-    const workspaceIds = memberships.map( (m) => m.workspaceId)
+    const workspaceIds = memberships.map((m) => m.workspaceId)
 
     const workspaces = await WorkspaceModel.findByIds(workspaceIds)
     return workspaces
@@ -97,3 +98,36 @@ export const addWorkspaceMember = async (requesterId: string, workspaceId: strin
     return newMembership;
 };
 
+export const removeWorkspaceMember = async (requesterId: string, workspaceId: string, targetUserId: string) => {
+    // 1. Find Target Membership
+    const targetMembership = await WorkspaceMemberModel.findByWorkspaceAndUser(Number(workspaceId), Number(targetUserId));
+    if (!targetMembership) {
+        const error: any = new Error('User is not a member of this workspace.');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    // 2. Protect the Owner from Deletion
+    if (targetMembership.role === 'Owner') {
+        const error: any = new Error('Cannot remove the Workspace Owner.');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    // 3. Authorize the Requester
+    const requesterMembership = await WorkspaceMemberModel.findByWorkspaceAndUser(Number(workspaceId), Number(requesterId));
+    if (!requesterMembership) {
+        const error: any = new Error('Access denied. You are not a member of this workspace.');
+        error.statusCode = 403;
+        throw error;
+    }
+
+    if (requesterMembership.role === 'Member') {
+        const error: any = new Error('Access denied. Only Owners and Admins can remove members.');
+        error.statusCode = 403;
+        throw error;
+    }
+
+    // 4. Remove the Member (Cascade destruction is handled by DB rules/app)
+    await WorkspaceMemberModel.delete(Number(workspaceId), Number(targetUserId));
+};

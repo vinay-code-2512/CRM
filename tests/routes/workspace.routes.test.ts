@@ -223,4 +223,56 @@ describe('Workspace API Routes', () => {
     });
 
 
+    // ==========================================
+    // 4. DELETE /api/v1/workspaces/:workspaceId/members/:userId
+    // ==========================================
+    describe('DELETE /api/v1/workspaces/:workspaceId/members/:userId', () => {
+        let workspaceId: number;
+        let targetUser: any;
+
+        beforeEach(async () => {
+            // HOW: Create an actual workspace in the DB
+            const createRes = await request(app)
+                .post('/api/v1/workspaces')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ name: 'Route Remove Workspace', description: '' });
+            
+            workspaceId = createRes.body.id;
+
+            // HOW: Create a target user
+            targetUser = await UserModel.create({
+                name: 'Route Target RM',
+                email: `routerms${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+
+            // HOW: Add the target user to the workspace so we can test removing them
+            await request(app)
+                .post(`/api/v1/workspaces/${workspaceId}/members`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ email: targetUser.email, role: 'Member' });
+        });
+
+        // TEST 1: Happy Path
+        it('should return 200 and success message on successful member removal', async () => {
+            const response = await request(app)
+                .delete(`/api/v1/workspaces/${workspaceId}/members/${targetUser.id}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.message).toBe('Member removed successfully');
+        });
+
+        // TEST 2: Auth Check
+        it('should return 401 if no auth token is provided', async () => {
+            const response = await request(app)
+                .delete(`/api/v1/workspaces/${workspaceId}/members/${targetUser.id}`);
+
+            // SECURITY CHECK: requireAuth middleware should intercept this
+            expect(response.status).toBe(401);
+        });
+    });
+
+
+
 });

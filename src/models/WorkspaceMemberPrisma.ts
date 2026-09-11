@@ -34,4 +34,10 @@ export const WorkspaceMemberModel = {
   async findByWorkspaceAndUser(workspaceId: number, userId: number): Promise<WorkspaceMemberRow | null> {
     return await this._orm.where({ workspaceId, userId }).first();
   },
+
+  async delete(workspaceId: number , userId:number): Promise<void>{
+    await this._orm.where({workspaceId,userId}).delete()
+  },
+
+
 };
