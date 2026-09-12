@@ -131,3 +131,35 @@ export const removeWorkspaceMember = async (requesterId: string, workspaceId: st
     // 4. Remove the Member (Cascade destruction is handled by DB rules/app)
     await WorkspaceMemberModel.delete(Number(workspaceId), Number(targetUserId));
 };
+
+
+export const deleteWorkspace = async (requesterId: string, workspaceId: string) => {
+    // 1. Verify Workspace Exists FIRST
+    const workspace = await WorkspaceModel.findById(Number(workspaceId));
+    if (!workspace) {
+        const error: any = new Error('Workspace not found.');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    // 2. Authorize Requester
+    const requesterMembership = await WorkspaceMemberModel.findByWorkspaceAndUser(Number(workspaceId), Number(requesterId));
+    if (!requesterMembership) {
+        const error: any = new Error('Access denied. You are not a member of this workspace.');
+        error.statusCode = 403;
+        throw error;
+    }
+
+    // 3. Protect against Admin/Member Deletion
+    if (requesterMembership.role !== 'Owner') {
+        const error: any = new Error('Access denied. Only the Workspace Owner can delete the workspace.');
+        error.statusCode = 403;
+        throw error;
+    }
+
+    // 4. Cascade Deletion: Wipe out all Memberships first
+    await WorkspaceMemberModel.deleteByWorkspaceId(Number(workspaceId));
+
+    // 5. Destroy the Workspace
+    await WorkspaceModel.delete(Number(workspaceId));
+};

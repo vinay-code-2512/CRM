@@ -168,6 +168,8 @@
 
 **Acceptance Criteria:** Only Workspace Owner can perform this; Admins cannot delete a workspace. Deletion must remove/disable all user access to the workspace.
 
+**Status:** Done
+
 **Dependencies:** US-2.1
 
 **Status:** Todo

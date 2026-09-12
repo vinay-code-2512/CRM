@@ -39,5 +39,9 @@ export const WorkspaceMemberModel = {
     await this._orm.where({workspaceId,userId}).delete()
   },
 
+    async deleteByWorkspaceId(workspaceId: number): Promise<void> {
+    await this._orm.where({ workspaceId }).delete();
+  },
+
 
 };

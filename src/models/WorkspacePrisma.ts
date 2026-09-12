@@ -38,5 +38,10 @@ export const WorkspaceModel = {
     }
     return results;
   },
+
+    async delete(id: number): Promise<void> {
+    await this._orm.where({ id }).delete();
+  },
+
 };
  

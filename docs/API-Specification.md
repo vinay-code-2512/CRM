@@ -161,18 +161,22 @@
 - **Method:** `PATCH /workspaces/:id`
 
 - **Auth Required:** Yes (**Workspace Owner or Admin**)
-
 - **Request Body:** `{ "name": "New Name" }`
-
 - **Success (200):** Updated workspace details.
 
 ### Delete Workspace
 
 - **Method:** `DELETE /workspaces/:id`
-
-- **Auth Required:** Yes (**Workspace Owner Only**)
-
-- **Success (200):** `{ "message": "Workspace deleted" }`
+- **Purpose:** Delete a workspace and cascade remove all its members.
+- **Auth Required:** Yes (Authenticated requester is identified from the JWT).
+- **Authorization:** Only the **Workspace Owner** can perform this operation. Admins and Members are strictly prohibited.
+- **Path Parameters:**
+  - `id` (integer): Target workspace ID.
+- **Success (200 OK):**
+  ```json
+  {
+    "message": "Workspace deleted successfully"
+  }
 
 ---
 

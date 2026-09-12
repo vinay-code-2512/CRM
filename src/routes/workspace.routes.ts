@@ -1,7 +1,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validation.middleware';
-import { createWorkspaceController, getWorkspacesController, getWorkspaceByIdController, addWorkspaceMemberController, removeWorkspaceMemberController } from '../controllers/workspace.controller';
+import { createWorkspaceController, getWorkspacesController, getWorkspaceByIdController, addWorkspaceMemberController, removeWorkspaceMemberController, deleteWorkspaceController } from '../controllers/workspace.controller';
 
 const router = express.Router();
 
@@ -19,5 +19,8 @@ router.post('/:id/members', requireAuth, validateBody(['email', 'role']), addWor
 
 // DELETE /api/v1/workspaces/:workspaceId/members/:userId — Remove a member from the workspace (Protected)
 router.delete('/:workspaceId/members/:userId', requireAuth, removeWorkspaceMemberController);
+
+// DELETE /api/v1/workspaces/:id — Delete a workspace (Protected)
+router.delete('/:id', requireAuth, deleteWorkspaceController);
 
 export default router;
