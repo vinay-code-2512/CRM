@@ -1,7 +1,8 @@
 import db from '../../src/lib/prisma';
 import { UserModel } from '../../src/models/UserPrisma';
 import { WorkspaceMemberModel } from '../../src/models/WorkspaceMemberPrisma';
-import { createWorkspace, getUserWorkspaces, addWorkspaceMember, removeWorkspaceMember } from '../../src/services/workspace.service';
+import { WorkspaceModel } from '../../src/models/WorkspacePrisma';
+import { createWorkspace, getUserWorkspaces, addWorkspaceMember, removeWorkspaceMember, deleteWorkspace } from '../../src/services/workspace.service';
 
 describe('Workspace Service', () => {
     let testUserId: string;
@@ -311,6 +312,71 @@ describe('Workspace Service', () => {
                 .rejects.toMatchObject({ statusCode: 400 });
         });
     });
+
+
+    // ==========================================
+    // 5. deleteWorkspace TESTS
+    // ==========================================
+    describe('deleteWorkspace', () => {
+        let workspaceId: number;
+
+        beforeEach(async () => {
+            // Setup a base workspace owned by testUserId
+            const workspace = await createWorkspace(testUserId, { name: 'Delete Test Workspace', description: '' });
+            workspaceId = workspace.id;
+        });
+
+        // 1. Workspace Owner can successfully delete the workspace.
+        // Verify WorkspaceModel.findById(workspaceId) returns null.
+        // Verify the Owner's WorkspaceMember record is also deleted.
+        it('should allow Workspace Owner to delete the workspace and cascade delete memberships', async () => {
+            await deleteWorkspace(testUserId, String(workspaceId));
+            
+            // Verify workspace is gone
+            const workspaceCheck = await WorkspaceModel.findById(workspaceId);
+            expect(workspaceCheck).toBeNull();
+
+            // Verify memberships are gone
+            const dbRecord = await WorkspaceMemberModel.findByWorkspaceAndUser(workspaceId, Number(testUserId));
+            expect(dbRecord).toBeNull();
+        });
+
+        // 2. Workspace Admin cannot delete the workspace -> 403.
+        it('should reject a Workspace Admin from deleting the workspace with 403', async () => {
+            // Make another user an Admin
+            const adminUser = await UserModel.create({ name: 'Admin', email: `admindel${Math.random()}@test.com`, passwordHash: 'fake' });
+            await WorkspaceMemberModel.create({ workspaceId, userId: adminUser.id, role: 'Admin' });
+            
+            await expect(deleteWorkspace(String(adminUser.id), String(workspaceId)))
+                .rejects.toMatchObject({ statusCode: 403 });
+        });
+
+        // 3. Workspace Member cannot delete the workspace -> 403.
+        it('should reject a normal Workspace Member from deleting the workspace with 403', async () => {
+            const memberUser = await UserModel.create({ name: 'Member', email: `memberdel${Math.random()}@test.com`, passwordHash: 'fake' });
+            await WorkspaceMemberModel.create({ workspaceId, userId: memberUser.id, role: 'Member' });
+            
+            await expect(deleteWorkspace(String(memberUser.id), String(workspaceId)))
+                .rejects.toMatchObject({ statusCode: 403 });
+        });
+
+        // 4. A user who is not a member cannot delete the workspace -> 403.
+        it('should reject a requester who is not a member of the workspace with 403', async () => {
+            const randoUser = await UserModel.create({ name: 'Rando', email: `randodel${Math.random()}@test.com`, passwordHash: 'fake' });
+            
+            await expect(deleteWorkspace(String(randoUser.id), String(workspaceId)))
+                .rejects.toMatchObject({ statusCode: 403 });
+        });
+
+        // 5. A nonexistent workspace cannot be deleted -> 404.
+        it('should reject if the workspace does not exist with 404', async () => {
+            const fakeWorkspaceId = 999999;
+            await expect(deleteWorkspace(testUserId, String(fakeWorkspaceId)))
+                .rejects.toMatchObject({ statusCode: 404 });
+        });
+    });
+
+
 
     
 });

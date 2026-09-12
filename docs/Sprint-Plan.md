@@ -98,7 +98,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 - [x] US-2.1: Workspace creation
 - [x] US-2.2: Add registered members
 - [x] US-2.3: Remove members
-- [ ] US-2.4: Workspace deletion
+- [x] US-2.4: Workspace deletion
 - [ ] US-7.1: Workspace activity recording
 - [ ] US-10.1: Workspace roles/permissions
 

@@ -273,6 +273,42 @@ describe('Workspace API Routes', () => {
         });
     });
 
+        // ==========================================
+    // 5. DELETE /api/v1/workspaces/:id
+    // ==========================================
+    describe('DELETE /api/v1/workspaces/:id', () => {
+        let workspaceId: number;
+
+        beforeEach(async () => {
+            // HOW: Create an actual workspace in the DB so we can delete it
+            const createRes = await request(app)
+                .post('/api/v1/workspaces')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ name: 'Route Delete Workspace', description: '' });
+            
+            workspaceId = createRes.body.id;
+        });
+
+        // TEST 1: Happy Path
+        it('should return 200 and success message on successful workspace deletion', async () => {
+            const response = await request(app)
+                .delete(`/api/v1/workspaces/${workspaceId}`)
+                .set('Authorization', `Bearer ${validToken}`);
+
+            expect(response.status).toBe(200);
+            expect(response.body.message).toBe('Workspace deleted successfully');
+        });
+
+        // TEST 2: Auth Check
+        it('should return 401 if no auth token is provided', async () => {
+            const response = await request(app)
+                .delete(`/api/v1/workspaces/${workspaceId}`);
+
+            // SECURITY CHECK: requireAuth middleware should intercept this
+            expect(response.status).toBe(401);
+        });
+    });
+
 
 
 });
