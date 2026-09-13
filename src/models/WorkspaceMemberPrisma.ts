@@ -14,7 +14,7 @@ export interface WorkspaceMemberCreateInput {
   userId: number;
   role: 'Owner' | 'Admin' | 'Member';
 }
- 
+
 export const WorkspaceMemberModel = {
   get _orm() {
     return (db.orm as any).public.WorkspaceMember;
@@ -23,7 +23,7 @@ export const WorkspaceMemberModel = {
   async create(data: WorkspaceMemberCreateInput): Promise<WorkspaceMemberRow> {
     return await this._orm.create({
       ...data,
-      updatedAt: (globalThis as any).Temporal.Now.instant(),
+      updatedAt: (globalThis as any).Temporal.Now.instant()
     });
   },
 
@@ -35,12 +35,26 @@ export const WorkspaceMemberModel = {
     return await this._orm.where({ workspaceId, userId }).first();
   },
 
-  async delete(workspaceId: number , userId:number): Promise<void>{
-    await this._orm.where({workspaceId,userId}).delete()
+  async delete(workspaceId: number, userId: number): Promise<void> {
+    await this._orm.where({ workspaceId, userId }).delete()
   },
 
-    async deleteByWorkspaceId(workspaceId: number): Promise<void> {
+  async deleteByWorkspaceId(workspaceId: number): Promise<void> {
     await this._orm.where({ workspaceId }).delete();
+  },
+
+  async updateRole(workspaceId: number, userId: number, role: 'Owner' | 'Admin' | 'Member'): Promise<WorkspaceMemberRow | null> {
+    const record = await this._orm.where({ workspaceId, userId }).first();
+    if (!record)
+      return null;
+
+    await this._orm.where({ id: record.id }).update({
+      role,
+      updatedAt: (globalThis as any).Temporal.Now.instant()
+    });
+
+    // Fetch and return the freshly updated record
+    return await this._orm.where({ id: record.id }).first();
   },
 
 

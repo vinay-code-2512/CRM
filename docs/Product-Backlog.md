@@ -172,8 +172,6 @@
 
 **Dependencies:** US-2.1
 
-**Status:** Todo
-
 ### Epic 3: Project Management
 
 **ID:** US-3.1
@@ -474,7 +472,7 @@
 
 **Dependencies:** US-2.2
 
-**Status:** Todo
+**Status:** Done
 
 ---
 

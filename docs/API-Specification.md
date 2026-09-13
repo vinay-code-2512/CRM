@@ -210,15 +210,15 @@
 
 ### Update Member Role
 
-- **Method:** `PATCH /workspaces/:workspaceId/members/:userId`
+- **Method:** `PATCH /workspaces/:workspaceId/members/:userId/role`
 
-- **Auth Required:** Yes (**Workspace Owner Only**)
+- **Auth Required:** Yes (**Workspace Owner or Admin**)
 
 - **Request Body:** `{ "role": "Admin" }`
 
-- **Success (200):** Updated member record.
+- **Success (200):** `{ "message": "Member role updated successfully", "member": { ... } }`
 
-- **Constraints:** Only Workspace Owners can manage roles. Cannot change the sole Workspace Owner's role. Keep `Owner` as the workspace role value.
+- **Constraints:** Only `Admin` or `Member` roles can be assigned. Cannot change the `Owner`'s role. Cannot assign the `Owner` role to anyone.
 
 
 ### Remove Member

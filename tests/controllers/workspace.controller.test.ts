@@ -1,6 +1,6 @@
 import db from '../../src/lib/prisma';
 import { UserModel } from '../../src/models/UserPrisma';
-import { createWorkspaceController, getWorkspacesController, addWorkspaceMemberController, removeWorkspaceMemberController, deleteWorkspaceController } from '../../src/controllers/workspace.controller';
+import { createWorkspaceController, getWorkspacesController, addWorkspaceMemberController, removeWorkspaceMemberController, deleteWorkspaceController, updateWorkspaceMemberRoleController } from '../../src/controllers/workspace.controller';
 
 
 describe('Workspace Controller', () => {
@@ -362,6 +362,68 @@ describe('Workspace Controller', () => {
             const passedError = next.mock.calls[0][0];
             expect(passedError.statusCode).toBe(404);
             expect(passedError.message).toBe('Workspace not found.');
+        });
+    });
+
+
+        // ==========================================
+    // 6. UPDATE WORKSPACE MEMBER ROLE CONTROLLER TESTS
+    // ==========================================
+    describe('updateWorkspaceMemberRoleController', () => {
+        let workspaceId: number;
+
+        beforeEach(async () => {
+            const req = { user: { userId: testUserId }, body: { name: 'Role Controller Workspace', description: '' } } as any;
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            await createWorkspaceController(req, res, next);
+            workspaceId = res.json.mock.calls[0][0].id;
+        });
+
+        // TEST 1: Happy Path
+        it('should return 200 and updated role on successful promotion', async () => {
+            // Setup: Add a member to the workspace first
+            const memberUser = await UserModel.create({ name: 'RoleTarget', email: `roletarget${Math.random()}@test.com`, passwordHash: 'fake' });
+            await addWorkspaceMemberController(
+                { user: { userId: testUserId }, params: { id: String(workspaceId) }, body: { email: memberUser.email, role: 'Member' } } as any,
+                { status: jest.fn().mockReturnThis(), json: jest.fn() } as any,
+                jest.fn() as any
+            );
+
+            // Execute Controller: Promote them to Admin
+            const req = {
+                user: { userId: testUserId },
+                params: { workspaceId: String(workspaceId), userId: String(memberUser.id) },
+                body: { role: 'Admin' }
+            } as any;
+
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            await updateWorkspaceMemberRoleController(req, res, next);
+
+            // Verify
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json.mock.calls[0][0].message).toBe('Member role updated successfully');
+            expect(res.json.mock.calls[0][0].member.role).toBe('Admin');
+        });
+
+        // TEST 2: Error Path (Invalid role)
+        it('should call next(error) if role is invalid', async () => {
+            const req = {
+                user: { userId: testUserId },
+                params: { workspaceId: String(workspaceId), userId: '999999' },
+                body: { role: 'SuperAdmin' } // Invalid role
+            } as any;
+
+            const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as any;
+            const next = jest.fn() as any;
+
+            await updateWorkspaceMemberRoleController(req, res, next);
+
+            expect(next).toHaveBeenCalled();
+            expect(next.mock.calls[0][0].statusCode).toBe(400); // Because 'SuperAdmin' is rejected by the Service
         });
     });
 
