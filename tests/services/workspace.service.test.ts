@@ -2,7 +2,7 @@ import db from '../../src/lib/prisma';
 import { UserModel } from '../../src/models/UserPrisma';
 import { WorkspaceMemberModel } from '../../src/models/WorkspaceMemberPrisma';
 import { WorkspaceModel } from '../../src/models/WorkspacePrisma';
-import { createWorkspace, getUserWorkspaces, addWorkspaceMember, removeWorkspaceMember, deleteWorkspace } from '../../src/services/workspace.service';
+import { createWorkspace, getUserWorkspaces, addWorkspaceMember, removeWorkspaceMember, deleteWorkspace, updateWorkspaceMemberRole } from '../../src/services/workspace.service';
 
 describe('Workspace Service', () => {
     let testUserId: string;
@@ -376,6 +376,79 @@ describe('Workspace Service', () => {
         });
     });
 
+
+    // ==========================================
+    // 6. updateWorkspaceMemberRole TESTS
+    // ==========================================
+    describe('updateWorkspaceMemberRole', () => {
+        let workspaceId: number;
+        let memberUserId: string;
+        let adminUserId: string;
+
+        beforeEach(async () => {
+            const workspace = await createWorkspace(testUserId, { name: 'Role Update Workspace', description: '' });
+            workspaceId = workspace.id;
+
+            // Add a normal member
+            const memberUser = await UserModel.create({ name: 'RoleMember', email: `rolemember${Math.random()}@test.com`, passwordHash: 'fake' });
+            memberUserId = String(memberUser.id);
+            await WorkspaceMemberModel.create({ workspaceId, userId: memberUser.id, role: 'Member' });
+
+            // Add an admin
+            const adminUser = await UserModel.create({ name: 'RoleAdmin', email: `roleadmin${Math.random()}@test.com`, passwordHash: 'fake' });
+            adminUserId = String(adminUser.id);
+            await WorkspaceMemberModel.create({ workspaceId, userId: adminUser.id, role: 'Admin' });
+        });
+
+                // 1. Owner promotes Member to Admin
+        it('should allow Workspace Owner to promote a Member to Admin', async () => {
+            const updated = await updateWorkspaceMemberRole(testUserId, String(workspaceId), memberUserId, 'Admin');
+            expect(updated?.role).toBe('Admin');
+        });
+
+        // 2. Owner demotes Admin to Member
+        it('should allow Workspace Owner to demote an Admin to Member', async () => {
+            const updated = await updateWorkspaceMemberRole(testUserId, String(workspaceId), adminUserId, 'Member');
+            expect(updated?.role).toBe('Member');
+        });
+
+        // 3. Admin promotes Member to Admin
+        it('should allow an Admin to promote a Member to Admin', async () => {
+            const updated = await updateWorkspaceMemberRole(adminUserId, String(workspaceId), memberUserId, 'Admin');
+            expect(updated?.role).toBe('Admin');
+        });
+
+        // 4. Admin tries to demote Owner -> 400
+        it('should reject an Admin attempting to change the Owner role with 400', async () => {
+            await expect(updateWorkspaceMemberRole(adminUserId, String(workspaceId), testUserId, 'Member'))
+                .rejects.toMatchObject({ statusCode: 400 });
+        });
+
+        // 5. Normal Member tries to promote someone -> 403
+        it('should reject a normal Member from changing roles with 403', async () => {
+            await expect(updateWorkspaceMemberRole(memberUserId, String(workspaceId), adminUserId, 'Member'))
+                .rejects.toMatchObject({ statusCode: 403 });
+        });
+
+        // 6. Try to assign the 'Owner' role to someone -> 400
+        it('should reject assigning the Owner role with 400', async () => {
+            await expect(updateWorkspaceMemberRole(testUserId, String(workspaceId), memberUserId, 'Owner'))
+                .rejects.toMatchObject({ statusCode: 400 });
+        });
+
+        // 7. Invalid role -> 400
+        it('should reject an invalid role with 400', async () => {
+            await expect(updateWorkspaceMemberRole(testUserId, String(workspaceId), memberUserId, 'SuperAdmin'))
+                .rejects.toMatchObject({ statusCode: 400 });
+        });
+
+        // 8. Target user is not in the workspace -> 404
+        it('should reject if the target user is not a member with 404', async () => {
+            const randoUser = await UserModel.create({ name: 'Rando', email: `rando${Math.random()}@test.com`, passwordHash: 'fake' });
+            await expect(updateWorkspaceMemberRole(testUserId, String(workspaceId), String(randoUser.id), 'Admin'))
+                .rejects.toMatchObject({ statusCode: 404 });
+        });
+    });
 
 
     

@@ -163,3 +163,46 @@ export const deleteWorkspace = async (requesterId: string, workspaceId: string) 
     // 5. Destroy the Workspace
     await WorkspaceModel.delete(Number(workspaceId));
 };
+
+
+export const updateWorkspaceMemberRole = async (requesterId: string, workspaceId: string, targetUserId: string, targetRole: string) => {
+    // 1. Target Role Validation
+    if (targetRole !== 'Admin' && targetRole !== 'Member') {
+        const error: any = new Error('Invalid role specified. Only Admin and Member roles can be assigned.');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    // 2. Authorize Requester
+    const requesterMembership = await WorkspaceMemberModel.findByWorkspaceAndUser(Number(workspaceId), Number(requesterId));
+    if (!requesterMembership) {
+        const error: any = new Error('Access denied. You are not a member of this workspace.');
+        error.statusCode = 403;
+        throw error;
+    }
+
+    if (requesterMembership.role === 'Member') {
+        const error: any = new Error('Access denied. Only Admins and Owners can manage roles.');
+        error.statusCode = 403;
+        throw error;
+    }
+
+    // 3. Find Target Membership
+    const targetMembership = await WorkspaceMemberModel.findByWorkspaceAndUser(Number(workspaceId), Number(targetUserId));
+    if (!targetMembership) {
+        const error: any = new Error('Target user is not a member of this workspace.');
+        error.statusCode = 404;
+        throw error;
+    }
+
+    // 4. Protection: Cannot change Owner's role
+    if (targetMembership.role === 'Owner') {
+        const error: any = new Error('Cannot change the role of the Workspace Owner.');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    // 5. Update Role
+    const updatedRecord = await WorkspaceMemberModel.updateRole(Number(workspaceId), Number(targetUserId), targetRole as 'Admin' | 'Member');
+    return updatedRecord;
+};

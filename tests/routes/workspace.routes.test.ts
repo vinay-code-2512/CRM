@@ -2,6 +2,7 @@ import request from 'supertest';
 import db from '../../src/lib/prisma';
 import app from '../../src/app';
 import { UserModel } from '../../src/models/UserPrisma';
+import { WorkspaceMemberModel } from '../../src/models/WorkspaceMemberPrisma';
 
 describe('Workspace API Routes', () => {
     let validToken: string;
@@ -10,7 +11,6 @@ describe('Workspace API Routes', () => {
         await db.connect();
     });
 
-    
 
     // Before each test: register + login a fresh user to get a valid JWT
     beforeEach(async () => {
@@ -310,5 +310,58 @@ describe('Workspace API Routes', () => {
     });
 
 
+
+        // ==========================================
+    // 6. UPDATE WORKSPACE MEMBER ROLE ROUTE TESTS
+    // ==========================================
+    describe('PATCH /workspaces/:workspaceId/members/:userId/role', () => {
+        let workspaceId: number;
+        let memberUserId: string;
+
+        beforeEach(async () => {
+            // Create workspace
+            const res = await request(app)
+                .post('/api/v1/workspaces')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ name: 'Role Route Workspace', description: '' });
+            workspaceId = res.body.id;
+
+            // Add a member
+            const memberUser = await UserModel.create({ name: 'RouteRoleMember', email: `routerolemember${Math.random()}@test.com`, passwordHash: 'fake' });
+            memberUserId = String(memberUser.id);
+            await WorkspaceMemberModel.create({ workspaceId, userId: memberUser.id, role: 'Member' });
+        });
+
+        // TEST 1: Happy Path
+        it('should return 200 and updated role when Owner promotes a Member', async () => {
+            const res = await request(app)
+                .patch(`/api/v1/workspaces/${workspaceId}/members/${memberUserId}/role`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ role: 'Admin' });
+
+            expect(res.status).toBe(200);
+            expect(res.body.message).toBe('Member role updated successfully');
+            expect(res.body.member.role).toBe('Admin');
+        });
+
+        // TEST 2: Unauthorized (no token)
+        it('should return 401 if no auth token is provided', async () => {
+            const res = await request(app)
+                .patch(`/api/v1/workspaces/${workspaceId}/members/${memberUserId}/role`)
+                .send({ role: 'Admin' });
+
+            expect(res.status).toBe(401);
+        });
+
+        // TEST 3: Invalid Role
+        it('should return 400 if an invalid role is provided', async () => {
+            const res = await request(app)
+                .patch(`/api/v1/workspaces/${workspaceId}/members/${memberUserId}/role`)
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ role: 'SuperAdmin' });
+
+            expect(res.status).toBe(400);
+        });
+    });
 
 });

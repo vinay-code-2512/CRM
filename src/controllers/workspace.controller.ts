@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 
 // Import the Service functions that contain workspace business logic
-import { createWorkspace, getUserWorkspaces, getWorkspaceById, addWorkspaceMember, removeWorkspaceMember, deleteWorkspace } from '../services/workspace.service';
+import { createWorkspace, getUserWorkspaces, getWorkspaceById, addWorkspaceMember, removeWorkspaceMember, deleteWorkspace, updateWorkspaceMemberRole } from '../services/workspace.service';
 
 // ==========================================
 // 1. CREATE WORKSPACE CONTROLLER
@@ -130,6 +130,35 @@ export const deleteWorkspaceController = async (req: Request, res: Response, nex
         res.status(200).json({ message: 'Workspace deleted successfully' });
     } catch (error) {
         // SECURITY CHECK: Slide any business logic errors to the Global Error Handler
+        next(error);
+    }
+};
+
+// ==========================================
+// 7. UPDATE WORKSPACE MEMBER ROLE CONTROLLER
+// ==========================================
+export const updateWorkspaceMemberRoleController = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // WHAT: Grab the Bouncer's verified user ID
+        const requesterId = req.user!.userId;
+
+        // WHAT: Grab target IDs from the URL params
+        const workspaceId = String(req.params.workspaceId);
+        const targetUserId = String(req.params.userId);
+
+        // WHAT: Grab the new role from the request body
+        const targetRole = String(req.body.role);
+
+        // HOW: Hand off to Service to validate business rules and update
+        const updatedMember = await updateWorkspaceMemberRole(requesterId, workspaceId, targetUserId, targetRole);
+
+        // PURPOSE: Return success response
+        res.status(200).json({
+            message: 'Member role updated successfully',
+            member: updatedMember
+        });
+    } catch (error) {
+        // SECURITY CHECK: Slide any errors to the Global Error Handler
         next(error);
     }
 };
