@@ -18,22 +18,15 @@ describe('Auth Service - registerUser', () => {
         await db.connect();
     });
 
-
     // Hold the in-memory MongoDB server instance
-    
-
     // Start in-memory MongoDB ONCE before all tests
-    
-
     // Clean up after ALL tests finish
-    
-
     // Wipe all data after EACH test for isolation
     afterEach(async () => {
         await (db.orm as any).public.User.deleteAll();
     });
 
-   // TEST 1: Does registerUser successfully create a user with valid data?
+    // TEST 1: Does registerUser successfully create a user with valid data?
     // This is the "happy path" — correct input, expected output
     it('should register a user successfully with valid data', async () => {
         // Call the Service function directly — no HTTP, no Express, no routes
@@ -62,7 +55,7 @@ describe('Auth Service - registerUser', () => {
         });
         // Go directly to the database and find the user we just created
         // This bypasses the Service's return — we're checking what's ACTUALLY stored
-        const userInDb = await User.findByEmail('hash@example.com' );
+        const userInDb = await User.findByEmail('hash@example.com');
         // The passwordHash in the database should NOT equal the plain password
         // If they're equal, it means hashing failed — a critical security flaw
         // ! means not null
@@ -72,7 +65,7 @@ describe('Auth Service - registerUser', () => {
         expect(userInDb!.passwordHash).toMatch(/^\$2[ab]\$/);
     });
 
-        // TEST 3: Is the plain password stored anywhere in the database document?
+    // TEST 3: Is the plain password stored anywhere in the database document?
     // Even if passwordHash is correct, we must ensure 'password' field doesn't exist
     it('should NOT store plain password in the database', async () => {
 
@@ -83,7 +76,7 @@ describe('Auth Service - registerUser', () => {
         });
 
         // Fetch the raw document from MongoDB
-        const userInDb = await User.findByEmail('plain@example.com' );
+        const userInDb = await User.findByEmail('plain@example.com');
 
         // The document should have 'passwordHash' (the hashed version)
         expect(userInDb!.passwordHash).toBeDefined();
@@ -94,7 +87,7 @@ describe('Auth Service - registerUser', () => {
         expect((userInDb as any).password).toBeUndefined();
     });
 
-     // TEST 4: Does registerUser reject a duplicate email?
+    // TEST 4: Does registerUser reject a duplicate email?
     // Our Service checks User.findOne({ email }) — if found, it throws an error
     it('should throw an error if email already exists', async () => {
 
@@ -124,7 +117,7 @@ describe('Auth Service - registerUser', () => {
         expect(error.message).toBe('User already exists with this email');
     });
 
-     // TEST 5: Does the returned data expose passwordHash?
+    // TEST 5: Does the returned data expose passwordHash?
     // The Service should return ONLY safe, non-sensitive fields
     it('should NOT include passwordHash in the returned data', async () => {
 
@@ -146,14 +139,14 @@ describe('Auth Service - registerUser', () => {
     });
 
     describe('loginUser', () => {
-        
+
         // WHAT: A Jest Hook that runs before every test in this block
         // WHY: We need a fake user in the RAM database to test logging in
         beforeEach(async () => {
             // HOW: Generate salt and hash 'password123' so the DB has a valid hash
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash('password123', salt);
-            
+
             // PURPOSE: Inject the fake user into MongoDB
             await User.create({
                 name: 'Vinay',
@@ -173,7 +166,7 @@ describe('Auth Service - registerUser', () => {
             // PURPOSE: Verify the Worker generated the ID Card (JWT)
             expect(result).toHaveProperty('token');
             expect(typeof result.token).toBe('string');
-            
+
             // SECURITY CHECK: Ensure the Worker returns safe data and NO password hash
             expect(result.user.email).toBe('vinay.com');
             expect(result.user).not.toHaveProperty('passwordHash');
@@ -189,16 +182,16 @@ describe('Auth Service - registerUser', () => {
 
             // PURPOSE: Strictly check that the Worker throws the exact generic message
             await expect(loginAttempt).rejects.toThrow('Invalid email or password');
-            
+
             // NEED: Catch the error manually to prove the status code is exactly 401
             try {
                 await loginAttempt;
             } catch (error: any) {
-                expect(error.statusCode).toBe(401); 
+                expect(error.statusCode).toBe(401);
             }
         });
     });
-    
+
     // ==========================================
     // 3. GET USER AND UPDATE USER WORKER TESTS
     // ==========================================
@@ -225,7 +218,7 @@ describe('Auth Service - registerUser', () => {
                 // SECURITY CHECK: Did it find the user?
                 expect(user).toBeDefined();
                 expect(user.name).toBe('Profile Tester');
-                
+
                 // SECURITY CHECK: Is the password safely hidden?
                 expect((user as any).passwordHash).toBeUndefined();
             });
@@ -246,7 +239,7 @@ describe('Auth Service - registerUser', () => {
 
                 // SECURITY CHECK: Did the name actually change?
                 expect(updatedUser.name).toBe('New Awesome Name');
-                
+
                 // SECURITY CHECK: Is the password still hidden on the returned object?
                 expect((updatedUser as any).passwordHash).toBeUndefined();
             });
@@ -368,7 +361,7 @@ describe('Auth Service - registerUser', () => {
                 await expect(verifyEmailToken(rawToken)).rejects.toThrow('Invalid or expired verification token');
             });
         });
-    }); 
+    });
 
 
     // ==========================================
@@ -393,14 +386,14 @@ describe('Auth Service - registerUser', () => {
         describe('generatePasswordResetToken', () => {
             it('should return success message if email exists but NOT return the token', async () => {
                 const response = await generatePasswordResetToken(testEmail);
-                
+
                 // SECURITY CHECK: We must return a generic message to prevent enumeration
                 expect(response.message).toBe('If an account exists for this email, a password reset link has been sent.');
             });
 
             it('should return the EXACT SAME success message if email does NOT exist (Zero-Knowledge)', async () => {
                 const response = await generatePasswordResetToken('nobody@test.com');
-                
+
                 // SECURITY CHECK: Do not leak "User not found"
                 expect(response.message).toBe('If an account exists for this email, a password reset link has been sent.');
             });
@@ -433,13 +426,13 @@ describe('Auth Service - registerUser', () => {
 
             it('should successfully reset the password with a valid token', async () => {
                 const newPassword = 'NewSecurePassword123';
-                
+
                 const response = await resetPassword(validResetToken, newPassword);
                 expect(response.message).toBe('Password reset successful.');
 
                 // Verify the database actually updated
                 const updatedUser = await User.findById(Number(testUserId));
-                
+
                 // Old password should fail
                 const oldPasswordMatch = await bcrypt.compare('oldPassword123', updatedUser!.passwordHash);
                 expect(oldPasswordMatch).toBe(false);
@@ -451,7 +444,7 @@ describe('Auth Service - registerUser', () => {
 
             it('should automatically invalidate the token AFTER the password is changed', async () => {
                 const newPassword = 'NewSecurePassword123';
-                
+
                 // STEP 1: Change the password
                 await resetPassword(validResetToken, newPassword);
 
@@ -487,7 +480,7 @@ describe('Auth Service - registerUser', () => {
             it('should throw 400 if the reset token has expired', async () => {
                 const user = await User.findById(Number(testUserId));
                 const secret = process.env.JWT_SECRET + user!.passwordHash;
-                
+
                 // HOW: Generate a token that expired 1 second ago
                 const expiredToken = jwt.sign({ userId: testUserId }, secret, { expiresIn: '-1s' });
 
