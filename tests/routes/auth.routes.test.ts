@@ -11,21 +11,15 @@ describe('Auth API Routes', () => {
         await db.connect();
     });
 
-    
-
-    // Standard database setup (Start the server)
-    
-
+    // Standard database setup (Start the server) 
     // Standard database cleanup (Stop the server)
-    
-
     // Wipe users before every test
+
     afterEach(async () => {
         await (db.orm as any).public.User.deleteAll();
     });
 
     // API Tests will go here...
-
     // TEST 1: The Happy Path
     it('should register a user successfully and return 201', async () => {
 

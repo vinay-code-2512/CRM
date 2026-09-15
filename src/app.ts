@@ -3,7 +3,7 @@ import { configureSecurity } from './middleware/security.middleware';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import authRoutes from './routes/auth.routes';
 import workspaceRoutes from './routes/workspace.routes';
-
+import projectRoutes from './routes/project.routes';
 
 const app: Application = express();
 
@@ -18,7 +18,7 @@ const apiRouter = express.Router();
 
 // Attach Workspace routes to the master router under the '/workspaces' path
 apiRouter.use('/workspaces', workspaceRoutes);
-
+apiRouter.use('/workspaces/:id/projects', projectRoutes);
 
 // Attach Auth routes to the master router under the '/auth' path
 apiRouter.use('/auth', authRoutes);

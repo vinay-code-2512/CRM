@@ -31,3 +31,23 @@ model WorkspaceMember {
 
   @@unique([workspaceId, userId])
 }
+
+model Project {
+  id          Int      @id @default(autoincrement())
+  workspaceId Int
+  name        String
+  description String?
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+}
+
+model ProjectMember {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  
+  @@unique([projectId, userId])
+}

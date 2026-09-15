@@ -244,20 +244,47 @@
 ### Create Project
 
 - **Method:** `POST /workspaces/:workspaceId/projects`
-
 - **Auth Required:** Yes (Workspace Owner or Admin)
-
-- **Request Body:** `{ "name": "Website Redesign" }`
-
-- **Success (201):** Created project. The creator is automatically added as a Project Member to ensure access.
+- **Request Body:** 
+  ```json
+  { 
+    "name": "Website Redesign",
+    "description": "Optional project description"
+  }
+  ```
+- **Success (201 Created):** 
+  ```json
+  {
+    "id": 1,
+    "workspaceId": 123,
+    "name": "Website Redesign",
+    "description": "Optional project description",
+    "isArchived": false,
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
+  ```
+- **Behavior:** The creator is automatically added as a `ProjectMember` to ensure they have immediate access.
 
 ### List Projects
 
 - **Method:** `GET /workspaces/:workspaceId/projects`
-
 - **Auth Required:** Yes (Workspace Member, Admin, or Workspace Owner)
-
-- **Success (200):** Array of active projects.
+- **Success (200 OK):** 
+  ```json
+  [
+    {
+      "id": 1,
+      "workspaceId": 123,
+      "name": "Website Redesign",
+      "description": "Optional project description",
+      "isArchived": false,
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  ]
+  ```
+- **Behavior:** Returns an array of active (non-archived) projects for the specified workspace.
 
 ### Update / Archive Project
 

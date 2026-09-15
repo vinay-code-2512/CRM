@@ -99,8 +99,8 @@ All sprint work is executed using feature branches. Branch names map directly to
 - [x] US-2.2: Add registered members
 - [x] US-2.3: Remove members
 - [x] US-2.4: Workspace deletion
-- [x] US-7.1: Workspace activity recording
-- [ ] US-10.1: Workspace roles/permissions
+- [] US-7.1: Workspace activity recording
+- [x] US-10.1: Workspace roles/permissions
 
 *(Note: Roles are strictly limited to Workspace Owner, Admin, and Member.)*
 
@@ -118,7 +118,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 
 **Backlog Items Included:**
 
-- US-3.1: Project creation
+- [x] US-3.1: Project creation
 - US-3.2: Project updates
 - US-3.3: Project membership (Add member)
 - US-3.4: Project archive/delete
@@ -242,7 +242,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 
 ### Epic 3 (Project)
 
-- [ ] US-3.1: Project creation -> Sprint 3
+- [x] US-3.1: Project creation -> Sprint 3
 - [ ] US-3.2: Project updates -> Sprint 3
 - [ ] US-3.3: Project membership -> Sprint 3
 - [ ] US-3.4: Project archive/delete -> Sprint 3
