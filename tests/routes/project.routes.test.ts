@@ -89,4 +89,37 @@ describe('Project Routes (Integration)', () => {
             expect(res.body[0].name).toBe('Test Project 1');
         });
     });
+
+        describe('PATCH /api/v1/workspaces/:id/projects/:projectId', () => {
+        let createdProjectId: string;
+
+        beforeEach(async () => {
+            // Setup: Create a project first to update
+            const createRes = await request(app)
+                .post(`/api/v1/workspaces/${testWorkspaceId}/projects`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ name: 'Old Name' });
+            createdProjectId = createRes.body.id;
+        });
+
+        it('should return 200 and update project if authorized', async () => {
+            const res = await request(app)
+                .patch(`/api/v1/workspaces/${testWorkspaceId}/projects/${createdProjectId}`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ name: 'New Name', isArchived: true });
+
+            expect(res.status).toBe(200);
+            expect(res.body.name).toBe('New Name');
+            expect(res.body.isArchived).toBe(true);
+        });
+
+        it('should return 401 if not authenticated', async () => {
+            const res = await request(app)
+                .patch(`/api/v1/workspaces/${testWorkspaceId}/projects/${createdProjectId}`)
+                .send({ name: 'Hacked Name' });
+
+            expect(res.status).toBe(401);
+        });
+    });
+
 });

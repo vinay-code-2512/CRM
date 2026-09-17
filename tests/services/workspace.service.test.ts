@@ -410,7 +410,7 @@ describe('Workspace Service', () => {
         it('should allow Workspace Owner to demote an Admin to Member', async () => {
             const updated = await updateWorkspaceMemberRole(testUserId, String(workspaceId), adminUserId, 'Member');
             expect(updated?.role).toBe('Member');
-        });
+        }); 
 
         // 3. Admin promotes Member to Admin
         it('should allow an Admin to promote a Member to Admin', async () => {

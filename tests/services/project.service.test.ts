@@ -3,7 +3,7 @@ import { UserModel } from '../../src/models/UserPrisma';
 import { WorkspaceMemberModel } from '../../src/models/WorkspaceMemberPrisma';
 import { ProjectModel } from '../../src/models/ProjectPrisma';
 import { ProjectMemberModel } from '../../src/models/ProjectMemberPrisma';
-import { createProject, getProjects } from '../../src/services/project.service';
+import { createProject, getProjects, updateProject } from '../../src/services/project.service';
 import { createWorkspace } from '../../src/services/workspace.service';
 
 describe('Project Service', () => {
@@ -148,4 +148,68 @@ describe('Project Service', () => {
             ).rejects.toMatchObject({ statusCode: 403 });
         });
     });
+
+
+        describe('updateProject', () => {
+        let testProjectId: string;
+
+        beforeEach(async () => {
+            const project = await ProjectModel.create({
+                workspaceId: Number(testWorkspaceId),
+                name: 'Original Project',
+                description: 'Original Desc'
+            });
+            testProjectId = String(project.id);
+        });
+
+        it('should allow an Owner to update the project name and description', async () => {
+            const updated = await updateProject(testUserId, testProjectId, {
+                name: 'Updated Name',
+                description: 'Updated Desc'
+            });
+
+            expect(updated?.name).toBe('Updated Name');
+            expect(updated?.description).toBe('Updated Desc');
+            expect(updated?.isArchived).toBe(false); // Should remain unchanged
+        });
+
+        it('should allow an Admin to archive a project', async () => {
+            // Make user Admin
+            await WorkspaceMemberModel.updateRole(Number(testWorkspaceId), Number(testUserId), 'Admin');
+
+            const updated = await updateProject(testUserId, testProjectId, {
+                isArchived: true 
+            });
+
+            expect(updated?.isArchived).toBe(true);
+            expect(updated?.name).toBe('Original Project'); // Should remain unchanged
+        });
+
+        it('should reject a regular Member trying to update the project', async () => {
+            // Make user Member
+            await WorkspaceMemberModel.updateRole(Number(testWorkspaceId), Number(testUserId), 'Member');
+
+            await expect(
+                updateProject(testUserId, testProjectId, { name: 'Hacked Name' })
+            ).rejects.toThrow('Access denied. Only Workspace Owners and Admins can update projects.');
+        });
+
+        it('should reject a non-workspace user trying to update the project', async () => {
+            // Remove user from workspace
+            await WorkspaceMemberModel.delete(Number(testWorkspaceId), Number(testUserId));
+
+            await expect(
+                updateProject(testUserId, testProjectId, { name: 'Hacked Name' })
+            ).rejects.toThrow('Access denied. You are not a member of this workspace.');
+        });
+
+        it('should throw 404 if project does not exist', async () => {
+            await expect(
+                updateProject(testUserId, '9999', { name: 'Ghost Project' })
+            ).rejects.toThrow('Project not found');
+        });
+    });
+
+
+
 });

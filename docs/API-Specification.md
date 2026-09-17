@@ -288,14 +288,28 @@
 
 ### Update / Archive Project
 
-- **Method:** `PATCH /projects/:projectId`
-
+- **Method:** `PATCH /workspaces/:workspaceId/projects/:projectId`
 - **Auth Required:** Yes (Workspace Owner or Admin)
-
-- **Request Body:** `{ "name": "Updated Name", "isArchived": true }`
-
-- **Success (200):** Updated project.
-
+- **Request Body:** 
+  ```json
+  { 
+    "name": "Updated Name", 
+    "description": "Updated Description",
+    "isArchived": true 
+  }
+  ```
+- **Success (200 OK):** 
+  ```json
+  {
+    "id": 1,
+    "workspaceId": 123,
+    "name": "Updated Name",
+    "description": "Updated Description",
+    "isArchived": true,
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
+  ```
 - **Action:** Submitting `{ "isArchived": true }` will archive the project.
 
 ### Delete Project

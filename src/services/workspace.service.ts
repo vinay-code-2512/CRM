@@ -13,7 +13,7 @@ export const createWorkspace = async (userId: string, data: {
 
     await WorkspaceMemberModel.create({
         workspaceId: workspace.id,
-        userId: Number(userId),
+        userId: Number(userId), 
         role: 'Owner'
     })
 
