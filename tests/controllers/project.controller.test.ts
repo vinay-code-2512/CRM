@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createProjectController, getProjectsController } from '../../src/controllers/project.controller';
+import { createProjectController, getProjectsController, updateProjectController } from '../../src/controllers/project.controller';
 import * as ProjectService from '../../src/services/project.service';
 
 // mock project service to test controller only 
@@ -74,4 +74,37 @@ describe('Project Controller', () => {
             expect(mockNext).toHaveBeenCalledWith(error);
         });
     });
+
+    describe('updateProjectController', () => {
+        beforeEach(() => {
+            mockReq.params = { projectId: '789' };
+        });
+
+        it('should call service and return 200 on success', async () => {
+            mockReq.body = { name: 'Updated Name', isArchived: true };
+            const mockUpdatedProject = { id: 789, name: 'Updated Name', isArchived: true };
+
+            (ProjectService.updateProject as jest.Mock).mockResolvedValue(mockUpdatedProject);
+
+            await updateProjectController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(ProjectService.updateProject).toHaveBeenCalledWith(mockUserId, '789', {
+                name: 'Updated Name',
+                description: undefined,
+                isArchived: true
+            });
+            expect(mockRes.status).toHaveBeenCalledWith(200);
+            expect(mockRes.json).toHaveBeenCalledWith(mockUpdatedProject);
+        });
+
+        it('should pass errors to next()', async () => {
+            const error = new Error('Not found');
+            (ProjectService.updateProject as jest.Mock).mockRejectedValue(error);
+
+            await updateProjectController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(mockNext).toHaveBeenCalledWith(error);
+        });
+    });
+
 });

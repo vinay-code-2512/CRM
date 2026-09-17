@@ -119,7 +119,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 **Backlog Items Included:**
 
 - [x] US-3.1: Project creation
-- US-3.2: Project updates
+- [x] US-3.2: Project updates
 - US-3.3: Project membership (Add member)
 - US-3.4: Project archive/delete
 - US-7.1: Project activity recording
@@ -243,7 +243,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 ### Epic 3 (Project)
 
 - [x] US-3.1: Project creation -> Sprint 3
-- [ ] US-3.2: Project updates -> Sprint 3
+- [x] US-3.2: Project updates -> Sprint 3
 - [ ] US-3.3: Project membership -> Sprint 3
 - [ ] US-3.4: Project archive/delete -> Sprint 3
 
