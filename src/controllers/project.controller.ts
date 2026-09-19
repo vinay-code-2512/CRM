@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createProject, getProjects, updateProject, addProjectMember } from '../services/project.service';
+import { createProject, getProjects, updateProject, addProjectMember, deleteProject } from '../services/project.service';
 
 // ==========================================
 // 1. CREATE PROJECT CONTROLLER
@@ -59,6 +59,9 @@ export const updateProjectController = async (req: Request, res: Response, next:
   }
 };
 
+// ======================================
+//  4. ADD PROJECT MEMBER CONTROLLER
+// =========================================
 export const addProjectMemberController = async (req: Request, res: Response,
   next: NextFunction) => {
 
@@ -76,3 +79,20 @@ export const addProjectMemberController = async (req: Request, res: Response,
     next(error)
   }
 }
+
+
+// ==========================================
+// 5. DELETE PROJECT CONTROLLER
+// ==========================================
+export const deleteProjectController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.userId;
+    const projectId = String(req.params.projectId);
+
+    const result = await deleteProject(userId, projectId);
+
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};

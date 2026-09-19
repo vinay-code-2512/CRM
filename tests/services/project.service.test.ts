@@ -3,7 +3,7 @@ import { UserModel } from '../../src/models/UserPrisma';
 import { WorkspaceMemberModel } from '../../src/models/WorkspaceMemberPrisma';
 import { ProjectModel } from '../../src/models/ProjectPrisma';
 import { ProjectMemberModel } from '../../src/models/ProjectMemberPrisma';
-import { createProject, getProjects, updateProject, addProjectMember } from '../../src/services/project.service';
+import { createProject, getProjects, updateProject, addProjectMember, deleteProject } from '../../src/services/project.service';
 import { createWorkspace } from '../../src/services/workspace.service';
 
 describe('Project Service', () => {
@@ -305,4 +305,62 @@ describe('Project Service', () => {
             ).rejects.toThrow('Access denied. Only Workspace Owners and Admins can add project members.');
         });
     });
+
+    describe('deleteProject', () => {
+        let testProjectId: string;
+
+        beforeEach(async () => {
+            const project = await ProjectModel.create({
+                workspaceId: Number(testWorkspaceId),
+                name: 'Delete Me Project'
+            });
+            testProjectId = String(project.id);
+
+            // Add the creator as a project member (simulating real behavior)
+            await ProjectMemberModel.create({
+                projectId: project.id,
+                userId: Number(testUserId)
+            });
+        });
+
+        it('should allow an Owner to delete the project', async () => {
+            const result = await deleteProject(testUserId, testProjectId);
+
+            expect(result.message).toBe('Project deleted successfully');
+
+            // Verify project is actually gone from DB
+            const deleted = await ProjectModel.findById(Number(testProjectId));
+            expect(deleted).toBeNull();
+        });
+
+        it('should also delete all project members when deleting', async () => {
+            await deleteProject(testUserId, testProjectId);
+
+            // Verify project members are cleaned up
+            const members = await ProjectMemberModel.findByProjectId(Number(testProjectId));
+            expect(members.length).toBe(0);
+        });
+
+        it('should allow an Admin to delete the project', async () => {
+            await WorkspaceMemberModel.updateRole(Number(testWorkspaceId), Number(testUserId), 'Admin');
+
+            const result = await deleteProject(testUserId, testProjectId);
+            expect(result.message).toBe('Project deleted successfully');
+        });
+
+        it('should reject a regular Member trying to delete', async () => {
+            await WorkspaceMemberModel.updateRole(Number(testWorkspaceId), Number(testUserId), 'Member');
+
+            await expect(
+                deleteProject(testUserId, testProjectId)
+            ).rejects.toThrow('Access denied. Only Workspace Owners and Admins can delete projects.');
+        });
+
+        it('should throw 404 if project does not exist', async () => {
+            await expect(
+                deleteProject(testUserId, '9999')
+            ).rejects.toThrow('Project not found');
+        });
+    });
+
 });

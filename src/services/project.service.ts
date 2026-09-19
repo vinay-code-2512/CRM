@@ -163,3 +163,40 @@ export const addProjectMember = async (
 
   return newMember;
 };
+
+
+export const deleteProject = async (requesterId: string, projectId: string) => {
+  // 1. Find the project (WHY: We need to verify it exists and get workspaceId for authorization)
+  const project = await ProjectModel.findById(Number(projectId));
+  if (!project) {
+    const error: any = new Error('Project not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // 2. Authorize: Only Workspace Owner or Admin can delete a project
+  const requesterMembership = await WorkspaceMemberModel.findByWorkspaceAndUser(
+    project.workspaceId,
+    Number(requesterId)
+  );
+
+  if (!requesterMembership) {
+    const error: any = new Error('Access denied. You are not a member of this workspace.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (requesterMembership.role === 'Member') {
+    const error: any = new Error('Access denied. Only Workspace Owners and Admins can delete projects.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 3. Delete all project members first (WHY: Clean up the junction table before deleting the project itself)
+  await ProjectMemberModel.deleteByProjectId(project.id);
+
+  // 4. Delete the project
+  await ProjectModel.delete(project.id);
+
+  return { message: 'Project deleted successfully' };
+};
