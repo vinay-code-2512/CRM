@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { createProjectController, getProjectsController, updateProjectController, addProjectMemberController } from '../../src/controllers/project.controller';
+import { createProjectController, getProjectsController, updateProjectController, addProjectMemberController, deleteProjectController } from '../../src/controllers/project.controller';
+
 import * as ProjectService from '../../src/services/project.service';
 
 // mock project service to test controller only 
@@ -107,7 +108,7 @@ describe('Project Controller', () => {
         });
     });
 
-    
+
     describe('addProjectMemberController', () => {
         beforeEach(() => {
             mockReq.params = { projectId: '789' };
@@ -116,7 +117,7 @@ describe('Project Controller', () => {
         it('should call service and return 201 on success', async () => {
             mockReq.body = { userId: 456 };
             const mockMember = { id: 1, projectId: 789, userId: 456 };
- 
+
             // Don't run the real addProjectMember service. Pretend it returned mockMember.
             (ProjectService.addProjectMember as jest.Mock).mockResolvedValue(mockMember);
 
@@ -137,5 +138,32 @@ describe('Project Controller', () => {
             expect(mockNext).toHaveBeenCalledWith(error);
         });
     });
+
+
+        describe('deleteProjectController', () => {
+        beforeEach(() => {
+            mockReq.params = { projectId: '789' };
+        });
+
+        it('should call service and return 200 on success', async () => {
+            (ProjectService.deleteProject as jest.Mock).mockResolvedValue({ message: 'Project deleted successfully' });
+
+            await deleteProjectController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(ProjectService.deleteProject).toHaveBeenCalledWith(mockUserId, '789');
+            expect(mockRes.status).toHaveBeenCalledWith(200);
+            expect(mockRes.json).toHaveBeenCalledWith({ message: 'Project deleted successfully' });
+        });
+
+        it('should pass errors to next()', async () => {
+            const error = new Error('Access denied');
+            (ProjectService.deleteProject as jest.Mock).mockRejectedValue(error);
+
+            await deleteProjectController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(mockNext).toHaveBeenCalledWith(error);
+        });
+    });
+
 
 });

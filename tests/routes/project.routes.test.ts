@@ -90,7 +90,7 @@ describe('Project Routes (Integration)', () => {
         });
     });
 
-        describe('PATCH /api/v1/workspaces/:id/projects/:projectId', () => {
+    describe('PATCH /api/v1/workspaces/:id/projects/:projectId', () => {
         let createdProjectId: string;
 
         beforeEach(async () => {
@@ -120,10 +120,10 @@ describe('Project Routes (Integration)', () => {
 
             expect(res.status).toBe(401);
         });
-    }); 
+    });
 
-    
-        describe('POST /api/v1/workspaces/:id/projects/:projectId/members', () => {
+
+    describe('POST /api/v1/workspaces/:id/projects/:projectId/members', () => {
         let createdProjectId: string;
         let targetUserId: string;
         let targetAuthToken: string;
@@ -168,7 +168,7 @@ describe('Project Routes (Integration)', () => {
                 .set('Authorization', `Bearer ${authToken}`)
                 .send({});
 
-        //  400 Bad Request - Missing required fields or business logic error
+            //  400 Bad Request - Missing required fields or business logic error
             expect(res.status).toBe(400);
         });
 
@@ -177,7 +177,46 @@ describe('Project Routes (Integration)', () => {
                 .post(`/api/v1/workspaces/${testWorkspaceId}/projects/${createdProjectId}/members`)
                 .send({ userId: targetUserId });
 
-        //  401 Unauthorised- No token or invalid token (not logged in)
+            //  401 Unauthorised- No token or invalid token (not logged in)
+            expect(res.status).toBe(401);
+        });
+    });
+
+
+    describe('DELETE /api/v1/workspaces/:id/projects/:projectId', () => {
+        let createdProjectId: string;
+
+        beforeEach(async () => {
+            // Create a project first to delete
+            const createRes = await request(app)
+                .post(`/api/v1/workspaces/${testWorkspaceId}/projects`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ name: 'Project to Delete' });
+            createdProjectId = createRes.body.id;
+        });
+
+        it('should return 200 and delete project if authorized', async () => {
+            const res = await request(app)
+                .delete(`/api/v1/workspaces/${testWorkspaceId}/projects/${createdProjectId}`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.message).toBe('Project deleted successfully');
+
+            // Verify it's actually gone from the GET list
+            const getRes = await request(app)
+                .get(`/api/v1/workspaces/${testWorkspaceId}/projects`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            // Should not find the deleted project in the list
+            const projectExists = getRes.body.some((p: any) => p.id === createdProjectId);
+            expect(projectExists).toBe(false);
+        });
+
+        it('should return 401 if not authenticated', async () => {
+            const res = await request(app)
+                .delete(`/api/v1/workspaces/${testWorkspaceId}/projects/${createdProjectId}`);
+
             expect(res.status).toBe(401);
         });
     });
