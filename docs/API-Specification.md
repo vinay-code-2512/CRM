@@ -336,15 +336,26 @@
 
 ### Add Member to Project
 
-- **Method:** `POST /projects/:projectId/members`
-
+- **Method:** `POST /workspaces/:workspaceId/projects/:projectId/members`
 - **Auth Required:** Yes (Workspace Owner or Admin)
-
-- **Request Body:** `{ "userId": "..." }`
-
-- **Success (201):** `{ "message": "User added to project" }`
-
-- **Constraints:** `project_members` can only be created for users who are already active members of the parent workspace.
+- **Request Body:**
+  ```json
+  { "userId": 123 }
+  ```
+- **Success (201 Created):**
+  ```json
+  {
+    "message": "User added to project",
+    "member": {
+      "id": 1,
+      "projectId": 456,
+      "userId": 123,
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  }
+  ```
+- **Constraints:** The target user must already be an active member of the parent workspace. Duplicate memberships are rejected with `400`.
 
 ### Remove Member from Project
 

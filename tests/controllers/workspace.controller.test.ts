@@ -226,7 +226,10 @@ describe('Workspace Controller', () => {
                 body: { email: 'ghost@test.com', role: 'Member' }
             } as any;
 
-            const res = { status: jest.fn().mockReturnThis(),json: jest.fn() } as any;
+            const res = {
+                status: jest.fn().mockReturnThis(),
+                json: jest.fn()
+            } as any;
             const next = jest.fn() as any;
 
             await addWorkspaceMemberController(req, res, next);
@@ -240,7 +243,7 @@ describe('Workspace Controller', () => {
     });
 
 
-        // ==========================================
+    // ==========================================
     // 4. REMOVE WORKSPACE MEMBER CONTROLLER TESTS
     // ==========================================
     describe('removeWorkspaceMemberController', () => {
@@ -309,7 +312,7 @@ describe('Workspace Controller', () => {
         });
     });
 
-    
+
     // ==========================================
     // 5. DELETE WORKSPACE CONTROLLER TESTS
     // ==========================================
@@ -366,7 +369,7 @@ describe('Workspace Controller', () => {
     });
 
 
-        // ==========================================
+    // ==========================================
     // 6. UPDATE WORKSPACE MEMBER ROLE CONTROLLER TESTS
     // ==========================================
     describe('updateWorkspaceMemberRoleController', () => {

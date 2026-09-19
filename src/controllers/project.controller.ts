@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createProject, getProjects, updateProject } from '../services/project.service';
+import { createProject, getProjects, updateProject, addProjectMember } from '../services/project.service';
 
 // ==========================================
 // 1. CREATE PROJECT CONTROLLER
@@ -40,10 +40,10 @@ export const getProjectsController = async (req: Request, res: Response, next: N
 export const updateProjectController = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.userId;
-    
+
     // Grab the projectId from the URL params
     const projectId = String(req.params.projectId);
-    
+
     // Grab the fields to update from the body
     const { name, description, isArchived } = req.body;
 
@@ -58,3 +58,21 @@ export const updateProjectController = async (req: Request, res: Response, next:
     next(error);
   }
 };
+
+export const addProjectMemberController = async (req: Request, res: Response,
+  next: NextFunction) => {
+
+  try {
+    const userId = req.user!.userId
+    const projectId = String(req.params.projectId)
+    const { userId: targetUserId } = req.body
+
+    const member = await addProjectMember(userId, projectId,
+      String(targetUserId))
+
+    res.status(201).json({ message: "User added to project", member })
+
+  } catch (error) {
+    next(error)
+  }
+}

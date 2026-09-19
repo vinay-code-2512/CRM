@@ -3,7 +3,7 @@ import { UserModel } from '../../src/models/UserPrisma';
 import { WorkspaceMemberModel } from '../../src/models/WorkspaceMemberPrisma';
 import { ProjectModel } from '../../src/models/ProjectPrisma';
 import { ProjectMemberModel } from '../../src/models/ProjectMemberPrisma';
-import { createProject, getProjects, updateProject } from '../../src/services/project.service';
+import { createProject, getProjects, updateProject, addProjectMember } from '../../src/services/project.service';
 import { createWorkspace } from '../../src/services/workspace.service';
 
 describe('Project Service', () => {
@@ -150,7 +150,7 @@ describe('Project Service', () => {
     });
 
 
-        describe('updateProject', () => {
+    describe('updateProject', () => {
         let testProjectId: string;
 
         beforeEach(async () => {
@@ -178,7 +178,7 @@ describe('Project Service', () => {
             await WorkspaceMemberModel.updateRole(Number(testWorkspaceId), Number(testUserId), 'Admin');
 
             const updated = await updateProject(testUserId, testProjectId, {
-                isArchived: true 
+                isArchived: true
             });
 
             expect(updated?.isArchived).toBe(true);
@@ -211,5 +211,98 @@ describe('Project Service', () => {
     });
 
 
+    describe('addProjectMember', () => {
+        let testProjectId: string;
+        let testTargetUserId: string;
 
+        beforeEach(async () => {
+            // Setup: Create a project
+            const project = await ProjectModel.create({
+                workspaceId: Number(testWorkspaceId),
+                name: 'Membership Project'
+            });
+            testProjectId = String(project.id);
+
+            // Setup: Create a second user
+            const targetUser = await UserModel.create({
+                name: 'Target User',
+                email: `target${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+            testTargetUserId = String(targetUser.id);
+        });
+
+        it('should allow an Owner to add a workspace member to the project', async () => {
+            // Add target user to workspace first
+            await WorkspaceMemberModel.create({
+                workspaceId: Number(testWorkspaceId),
+                userId: Number(testTargetUserId),
+                role: 'Member'
+            });
+
+            // testUserId is already the Owner (default from outer beforeEach)
+            const member = await addProjectMember(testUserId, testProjectId, testTargetUserId);
+
+            expect(member).toHaveProperty('id');
+            expect(member.projectId).toBe(Number(testProjectId));
+            expect(member.userId).toBe(Number(testTargetUserId));
+        });
+
+        it('should allow an Admin to add a workspace member to the project', async () => {
+            // Add target user to workspace first
+            await WorkspaceMemberModel.create({
+                workspaceId: Number(testWorkspaceId),
+                userId: Number(testTargetUserId),
+                role: 'Member'
+            });
+
+            // Make requester an Admin
+            await WorkspaceMemberModel.updateRole(Number(testWorkspaceId), Number(testUserId), 'Admin');
+
+            const member = await addProjectMember(testUserId, testProjectId, testTargetUserId);
+
+            expect(member).toHaveProperty('id');
+            expect(member.projectId).toBe(Number(testProjectId));
+            expect(member.userId).toBe(Number(testTargetUserId));
+        });
+
+        it('should reject if target user is NOT in the workspace', async () => {
+            await expect(
+                addProjectMember(testUserId, testProjectId, testTargetUserId)
+            ).rejects.toThrow('Cannot add user: The user must be a member of the workspace first.');
+        });
+
+        it('should reject if user is already in the project', async () => {
+            // Add target to workspace
+            await WorkspaceMemberModel.create({
+                workspaceId: Number(testWorkspaceId),
+                userId: Number(testTargetUserId),
+                role: 'Member'
+            });
+
+            // Add to project (first time works)
+            await addProjectMember(testUserId, testProjectId, testTargetUserId);
+
+            // Add again (should fail)
+            await expect(
+                addProjectMember(testUserId, testProjectId, testTargetUserId)
+            ).rejects.toThrow('User is already a member of this project.');
+        });
+
+        it('should reject if requester is just a regular Member', async () => {
+            // Add target to workspace
+            await WorkspaceMemberModel.create({
+                workspaceId: Number(testWorkspaceId),
+                userId: Number(testTargetUserId),
+                role: 'Member'
+            });
+
+            // Demote requester to Member
+            await WorkspaceMemberModel.updateRole(Number(testWorkspaceId), Number(testUserId), 'Member');
+
+            await expect(
+                addProjectMember(testUserId, testProjectId, testTargetUserId)
+            ).rejects.toThrow('Access denied. Only Workspace Owners and Admins can add project members.');
+        });
+    });
 });
