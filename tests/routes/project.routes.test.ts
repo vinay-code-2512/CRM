@@ -120,6 +120,66 @@ describe('Project Routes (Integration)', () => {
 
             expect(res.status).toBe(401);
         });
+    }); 
+
+    
+        describe('POST /api/v1/workspaces/:id/projects/:projectId/members', () => {
+        let createdProjectId: string;
+        let targetUserId: string;
+        let targetAuthToken: string;
+
+        beforeEach(async () => {
+            // Create a project
+            const createRes = await request(app)
+                .post(`/api/v1/workspaces/${testWorkspaceId}/projects`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ name: 'Member Test Project' });
+            createdProjectId = createRes.body.id;
+
+            // Create a second user and add them to the workspace
+            const targetUser = await UserModel.create({
+                name: 'Target Route User',
+                email: `target-route${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+            targetUserId = String(targetUser.id);
+
+            await WorkspaceMemberModel.create({
+                workspaceId: Number(testWorkspaceId),
+                userId: targetUser.id,
+                role: 'Member'
+            });
+        });
+
+        it('should return 201 and add a member to the project', async () => {
+            const res = await request(app)
+                .post(`/api/v1/workspaces/${testWorkspaceId}/projects/${createdProjectId}/members`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ userId: targetUserId });
+
+            expect(res.status).toBe(201);
+            expect(res.body.message).toBe('User added to project');
+            expect(res.body.member.userId).toBe(Number(targetUserId));
+        });
+
+        it('should return 400 if userId is missing', async () => {
+            const res = await request(app)
+                .post(`/api/v1/workspaces/${testWorkspaceId}/projects/${createdProjectId}/members`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({});
+
+        //  400 Bad Request - Missing required fields or business logic error
+            expect(res.status).toBe(400);
+        });
+
+        it('should return 401 if not authenticated', async () => {
+            const res = await request(app)
+                .post(`/api/v1/workspaces/${testWorkspaceId}/projects/${createdProjectId}/members`)
+                .send({ userId: targetUserId });
+
+        //  401 Unauthorised- No token or invalid token (not logged in)
+            expect(res.status).toBe(401);
+        });
     });
 
 });

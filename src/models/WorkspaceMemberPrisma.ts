@@ -1,5 +1,7 @@
+// Import the database/ORM connection
 import db from '../lib/prisma';
 
+// Defines the shape of a WorkspaceMember record returned from the database
 export interface WorkspaceMemberRow {
   id: number;
   workspaceId: number;
@@ -9,17 +11,22 @@ export interface WorkspaceMemberRow {
   updatedAt: Date;
 }
 
+// Defines the data required when creating a WorkspaceMember
 export interface WorkspaceMemberCreateInput {
   workspaceId: number;
   userId: number;
   role: 'Owner' | 'Admin' | 'Member';
 }
 
+// Model containing all database operations for WorkspaceMember
 export const WorkspaceMemberModel = {
+ 
+// Get the WorkspaceMember table from the ORM  
   get _orm() {
     return (db.orm as any).public.WorkspaceMember;
   },
 
+   // Create a new workspace membership
   async create(data: WorkspaceMemberCreateInput): Promise<WorkspaceMemberRow> {
     return await this._orm.create({
       ...data,
@@ -27,6 +34,7 @@ export const WorkspaceMemberModel = {
     });
   },
 
+  // Find all workspace memberships for a particular user
   async findByUserId(userId: number): Promise<WorkspaceMemberRow[]> {
     return await this._orm.where({ userId }).all();
   },

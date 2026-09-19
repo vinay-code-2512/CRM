@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createProjectController, getProjectsController, updateProjectController } from '../../src/controllers/project.controller';
+import { createProjectController, getProjectsController, updateProjectController, addProjectMemberController } from '../../src/controllers/project.controller';
 import * as ProjectService from '../../src/services/project.service';
 
 // mock project service to test controller only 
@@ -102,6 +102,37 @@ describe('Project Controller', () => {
             (ProjectService.updateProject as jest.Mock).mockRejectedValue(error);
 
             await updateProjectController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(mockNext).toHaveBeenCalledWith(error);
+        });
+    });
+
+    
+    describe('addProjectMemberController', () => {
+        beforeEach(() => {
+            mockReq.params = { projectId: '789' };
+        });
+
+        it('should call service and return 201 on success', async () => {
+            mockReq.body = { userId: 456 };
+            const mockMember = { id: 1, projectId: 789, userId: 456 };
+ 
+            // Don't run the real addProjectMember service. Pretend it returned mockMember.
+            (ProjectService.addProjectMember as jest.Mock).mockResolvedValue(mockMember);
+
+            await addProjectMemberController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(ProjectService.addProjectMember).toHaveBeenCalledWith(mockUserId, '789', '456');
+            expect(mockRes.status).toHaveBeenCalledWith(201);
+            expect(mockRes.json).toHaveBeenCalledWith({ message: 'User added to project', member: mockMember });
+        });
+
+        it('should pass errors to next()', async () => {
+            mockReq.body = { userId: 456 };
+            const error = new Error('Not a workspace member');
+            (ProjectService.addProjectMember as jest.Mock).mockRejectedValue(error);
+
+            await addProjectMemberController(mockReq as Request, mockRes as Response, mockNext);
 
             expect(mockNext).toHaveBeenCalledWith(error);
         });

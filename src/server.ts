@@ -9,7 +9,6 @@ const startServer = async () => {
     validateEnv();
 
 
-
     // Start listening
     const PORT = parseInt(ENV.PORT, 10);
     app.listen(PORT, () => {
