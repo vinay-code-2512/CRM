@@ -314,13 +314,13 @@
 
 ### Delete Project
 
-- **Method:** `DELETE /projects/:projectId`
-
+- **Method:** `DELETE /workspaces/:workspaceId/projects/:projectId`
 - **Auth Required:** Yes (Workspace Owner or Admin)
-
-- **Success (200):** `{ "message": "Project deleted" }`
-
-- **Action:** Calling this endpoint will permanently delete the project.
+- **Success (200 OK):**
+  ```json
+  { "message": "Project deleted successfully" }
+  ```
+- **Action:** Calling this endpoint will permanently delete the project and remove all of its members.
 
 ---
 
@@ -406,13 +406,9 @@
 - **Query Parameters:**
 
   - `status`: `Todo`, `In Progress`, `Review`, `Done`
-
   - `priority`: `Low`, `Medium`, `High`, `Urgent`
-
   - `assigneeId`: Filter by user.
-
   - `search`: Simple text match on title.
-
   - `page`, `limit`: Pagination.
 
 - **Success (200):** Paginated array of tasks.
@@ -420,23 +416,18 @@
 ### Get Task Details
 
 - **Method:** `GET /tasks/:taskId`
-
 - **Auth Required:** Yes (Project Member)
-
 - **Success (200):** Task details.
 
 ### Update Task
 
 - **Method:** `PATCH /tasks/:taskId`
-
 - **Auth Required:** Yes (Project Member)
-
 - **Request Body:**
 
   ```json
 
   {
-
     "status": "In Progress",
 
     "assigneeId": "user_id_here"
@@ -446,7 +437,6 @@
   ```
 
 - **Success (200):** Updated task.
-
 - **Constraints:** Task assignment (`assigneeId`) only allows valid project members.
 
 ### Delete Task
