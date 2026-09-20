@@ -51,3 +51,19 @@ model ProjectMember {
   
   @@unique([projectId, userId])
 }
+
+
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  projectId   Int
+  title       String
+  description String?
+  status      String    @default("Todo")
+  priority    String    @default("Medium")
+  labels      Json?     // Storing array of strings like ["backend", "setup"]
+  dueDate     DateTime?
+  assigneeId  Int?      // Optional: A task doesn't have to be assigned right away
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+}

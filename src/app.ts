@@ -4,6 +4,8 @@ import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import authRoutes from './routes/auth.routes';
 import workspaceRoutes from './routes/workspace.routes';
 import projectRoutes from './routes/project.routes';
+import taskRoutes from './routes/task.routes';
+
 
 const app: Application = express();
 
@@ -19,6 +21,8 @@ const apiRouter = express.Router();
 // Attach Workspace routes to the master router under the '/workspaces' path
 apiRouter.use('/workspaces', workspaceRoutes);
 apiRouter.use('/workspaces/:id/projects', projectRoutes);
+apiRouter.use('/projects/:projectId/tasks', taskRoutes);
+
 
 // Attach Auth routes to the master router under the '/auth' path
 apiRouter.use('/auth', authRoutes);

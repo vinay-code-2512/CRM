@@ -121,7 +121,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 - [x] US-3.1: Project creation
 - [x] US-3.2: Project updates
 - [x] US-3.3: Project membership (Add member)
-- US-3.4: Project archive/delete
+- [x] US-3.4: Project archive/delete
 - US-7.1: Project activity recording
 
 *(Note: No new project-specific roles are introduced.)*
@@ -140,7 +140,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 
 **Backlog Items Included:**
 
-- US-4.1: Create task
+- [x] US-4.1: Create task
 - US-4.2: View task
 - US-4.3: Update task fields
 - US-4.4: Assign task
@@ -245,11 +245,11 @@ All sprint work is executed using feature branches. Branch names map directly to
 - [x] US-3.1: Project creation -> Sprint 3
 - [x] US-3.2: Project updates -> Sprint 3
 - [x] US-3.3: Project membership -> Sprint 3
-- [ ] US-3.4: Project archive/delete -> Sprint 3
+- [x] US-3.4: Project archive/delete -> Sprint 3
 
 ### Epic 4 (Tasks)
 
-- [ ] US-4.1: Create task -> Sprint 4
+- [x] US-4.1: Create task -> Sprint 4
 - [ ] US-4.2: View task -> Sprint 4
 - [ ] US-4.3: Update task -> Sprint 4
 - [ ] US-4.4: Assign task -> Sprint 4

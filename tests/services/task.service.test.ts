@@ -1,0 +1,115 @@
+import db from '../../src/lib/prisma';
+import { UserModel } from '../../src/models/UserPrisma';
+import { WorkspaceModel } from '../../src/models/WorkspacePrisma';
+import { WorkspaceMemberModel } from '../../src/models/WorkspaceMemberPrisma';
+import { ProjectModel } from '../../src/models/ProjectPrisma';
+import { ProjectMemberModel } from '../../src/models/ProjectMemberPrisma';
+import { createTask } from '../../src/services/task.service';
+
+describe('Task Service', () => {
+    let testUserId: string;
+    let testWorkspaceId: string;
+    let testProjectId: string;
+
+    beforeAll(async () => {
+        await db.connect();
+    });
+
+    beforeEach(async () => {
+        // 1. Create a user
+        const user = await UserModel.create({
+            name: 'Task Test User',
+            email: `task${Math.random()}@test.com`,
+            passwordHash: 'fake'
+        });
+        testUserId = String(user.id);
+
+        // 2. Create a workspace and make user Owner
+        const workspace = await WorkspaceModel.create({ name: 'Task WS', description: '' });
+        testWorkspaceId = String(workspace.id);
+        await WorkspaceMemberModel.create({
+            workspaceId: workspace.id,
+            userId: user.id,
+            role: 'Owner'
+        });
+
+        // 3. Create a project and add user as a ProjectMember
+        const project = await ProjectModel.create({
+            workspaceId: workspace.id,
+            name: 'Task Project'
+        });
+        testProjectId = String(project.id);
+        await ProjectMemberModel.create({
+            projectId: project.id,
+            userId: user.id
+        });
+    });
+
+    afterEach(async () => {
+        await (db.orm as any).public.Task.deleteAll();
+        await (db.orm as any).public.ProjectMember.deleteAll();
+        await (db.orm as any).public.Project.deleteAll();
+        await (db.orm as any).public.WorkspaceMember.deleteAll();
+        await (db.orm as any).public.Workspace.deleteAll();
+        await (db.orm as any).public.User.deleteAll();
+    });
+
+    describe('createTask', () => {
+
+        it('should create a task with just a title (minimal input)', async () => {
+            const task = await createTask(testUserId, testProjectId, {
+                title: 'My First Task'
+            });
+
+            expect(task).toHaveProperty('id');
+            expect(task.title).toBe('My First Task');
+            expect(task.status).toBe('Todo');        // Default from DB
+            expect(task.priority).toBe('Medium');    // Default from service
+            expect(task.projectId).toBe(Number(testProjectId));
+        });
+
+        it('should create a task with all fields provided', async () => {
+            const task = await createTask(testUserId, testProjectId, {
+                title: 'Full Task',
+                description: 'Detailed description',
+                priority: 'High',
+                labels: ['backend', 'urgent'],
+                dueDate: '2026-12-31T00:00:00.000Z'
+            });
+
+            expect(task.title).toBe('Full Task');
+            expect(task.description).toBe('Detailed description');
+            expect(task.priority).toBe('High');
+            expect(task.labels).toEqual(['backend', 'urgent']);
+            expect(task.dueDate).toBeTruthy();
+        });
+
+        it('should reject if user is NOT a project member', async () => {
+            // Create a second user who is NOT in the project
+            const outsider = await UserModel.create({
+                name: 'Outsider',
+                email: `outsider${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+
+            await expect(
+                createTask(String(outsider.id), testProjectId, { title: 'Hacked Task' })
+            ).rejects.toThrow('Access denied. You must be a project member to create tasks.');
+        });
+
+        it('should reject if project is archived', async () => {
+            // Archive the project first
+            await ProjectModel.update(Number(testProjectId), { isArchived: true });
+
+            await expect(
+                createTask(testUserId, testProjectId, { title: 'Dead Project Task' })
+            ).rejects.toThrow('Cannot create tasks in an archived project.');
+        });
+
+        it('should throw 404 if project does not exist', async () => {
+            await expect(
+                createTask(testUserId, '9999', { title: 'Ghost Task' })
+            ).rejects.toThrow('Project not found');
+        });
+    });
+});
