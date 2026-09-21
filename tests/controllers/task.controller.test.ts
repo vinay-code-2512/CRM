@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createTaskController } from '../../src/controllers/task.controller';
+import { createTaskController, getTasksController, getTaskByIdController } from '../../src/controllers/task.controller';
 import * as TaskService from '../../src/services/task.service';
 
 // 1. Mock the Service Layer
@@ -88,4 +88,62 @@ describe('Task Controller', () => {
             expect(mockNext).toHaveBeenCalledWith(error);
         });
     });
+
+
+        describe('getTasksController', () => {
+        it('should return 200 with list of tasks', async () => {
+            mockReq.params = { projectId: '100' };
+            const mockTasks = [
+                { id: 1, title: 'Task A' },
+                { id: 2, title: 'Task B' }
+            ];
+
+            (TaskService.getTasks as jest.Mock).mockResolvedValue(mockTasks);
+
+            await getTasksController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(TaskService.getTasks).toHaveBeenCalledWith(mockUserId, '100');
+            expect(mockRes.status).toHaveBeenCalledWith(200);
+            expect(mockRes.json).toHaveBeenCalledWith(mockTasks);
+        });
+
+        it('should pass errors to next()', async () => {
+            mockReq.params = { projectId: '100' };
+            const error = new Error('Not a member');
+            (TaskService.getTasks as jest.Mock).mockRejectedValue(error);
+
+            await getTasksController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(mockNext).toHaveBeenCalledWith(error);
+        });
+    });
+
+    describe('getTaskByIdController', () => {
+        it('should return 200 with a single task', async () => {
+            mockReq.params = { projectId: '100', taskId: '5' };
+            const mockTask = { id: 5, title: 'Single Task' };
+
+            (TaskService.getTaskById as jest.Mock).mockResolvedValue(mockTask);
+
+            await getTaskByIdController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(TaskService.getTaskById).toHaveBeenCalledWith(mockUserId, '100', '5');
+            expect(mockRes.status).toHaveBeenCalledWith(200);
+            expect(mockRes.json).toHaveBeenCalledWith(mockTask);
+        });
+
+        it('should pass errors to next()', async () => {
+            mockReq.params = { projectId: '100', taskId: '999' };
+            const error = new Error('Task not found');
+            (TaskService.getTaskById as jest.Mock).mockRejectedValue(error);
+
+            await getTaskByIdController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(mockNext).toHaveBeenCalledWith(error);
+        });
+    });
+
+
+
+
 });

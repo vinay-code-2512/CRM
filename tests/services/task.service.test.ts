@@ -4,7 +4,8 @@ import { WorkspaceModel } from '../../src/models/WorkspacePrisma';
 import { WorkspaceMemberModel } from '../../src/models/WorkspaceMemberPrisma';
 import { ProjectModel } from '../../src/models/ProjectPrisma';
 import { ProjectMemberModel } from '../../src/models/ProjectMemberPrisma';
-import { createTask } from '../../src/services/task.service';
+import { TaskModel } from '../../src/models/TaskPrisma'
+import { createTask,getTasks,getTaskById } from '../../src/services/task.service';
 
 describe('Task Service', () => {
     let testUserId: string;
@@ -112,4 +113,73 @@ describe('Task Service', () => {
             ).rejects.toThrow('Project not found');
         });
     });
+
+        describe('View Tasks (getTasks & getTaskById)', () => {
+        let testTaskId1: number;
+        let testTaskId2: number;
+
+        beforeEach(async () => {
+            // Setup some tasks for us to retrieve
+            const task1 = await TaskModel.create({
+                projectId: Number(testProjectId),
+                title: 'First Test Task',
+                priority: 'High'
+            });
+            testTaskId1 = Number(task1.id);
+
+            const task2 = await TaskModel.create({
+                projectId: Number(testProjectId),
+                title: 'Second Test Task',
+                priority: 'Low'
+            });
+            testTaskId2 = Number(task2.id);
+        });
+
+        describe('getTasks (List)', () => {
+            it('should return all tasks for a valid project member', async () => {
+                const tasks = await getTasks(testUserId, testProjectId);
+                expect(tasks.length).toBe(2);
+                expect(tasks[0].title).toBe('First Test Task');
+                expect(tasks[1].title).toBe('Second Test Task');
+            });
+
+            it('should reject if user is not a project member', async () => {
+                const outsider = await UserModel.create({
+                    name: 'Outsider',
+                    email: `outsider2${Math.random()}@test.com`,
+                    passwordHash: 'fake'
+                });
+
+                await expect(
+                    getTasks(String(outsider.id), testProjectId)
+                ).rejects.toThrow('Access denied. You must be a project member to view tasks.');
+            });
+        });
+
+        describe('getTaskById (Single)', () => {
+            it('should return a specific task for a valid project member', async () => {
+                const task = await getTaskById(testUserId, testProjectId, String(testTaskId1));
+                expect(task.title).toBe('First Test Task');
+                expect(task.priority).toBe('High');
+            });
+
+            it('should throw 404 if task does not exist', async () => {
+                await expect(
+                    getTaskById(testUserId, testProjectId, '999999')
+                ).rejects.toThrow('Task not found');
+            });
+
+            it('should throw 400 if task belongs to a different project', async () => {
+                // Try to access testTaskId1 using project ID 999
+                await expect(
+                    getTaskById(testUserId, '999', String(testTaskId1))
+                ).rejects.toThrow('Task does not belong to this project');
+            });
+        });
+    });
+
+
+
+
+
 });

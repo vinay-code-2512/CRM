@@ -103,4 +103,67 @@ describe('Task Routes (Integration)', () => {
             expect(res.body.message).toBe('Access denied. You must be a project member to create tasks.');
         });
     });
+
+
+        describe('GET /api/v1/projects/:projectId/tasks', () => {
+        it('should return 200 with all tasks for a project member', async () => {
+            // First create two tasks
+            await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task One' });
+
+            await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task Two' });
+
+            // Now fetch them
+            const res = await request(app)
+                .get(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.length).toBe(2);
+            expect(res.body[0].title).toBe('Task One');
+            expect(res.body[1].title).toBe('Task Two');
+        });
+
+        it('should return 401 if not authenticated', async () => {
+            const res = await request(app)
+                .get(`/api/v1/projects/${testProjectId}/tasks`);
+
+            expect(res.status).toBe(401);
+        });
+    });
+
+    describe('GET /api/v1/projects/:projectId/tasks/:taskId', () => {
+        it('should return 200 with a single task', async () => {
+            // Create a task first
+            const createRes = await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Fetch Me', priority: 'High' });
+
+            const taskId = createRes.body.id;
+
+            // Now fetch it by ID
+            const res = await request(app)
+                .get(`/api/v1/projects/${testProjectId}/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.title).toBe('Fetch Me');
+            expect(res.body.priority).toBe('High');
+        });
+
+        it('should return 404 if task does not exist', async () => {
+            const res = await request(app)
+                .get(`/api/v1/projects/${testProjectId}/tasks/999999`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.status).toBe(404);
+        });
+    });
+
 });
