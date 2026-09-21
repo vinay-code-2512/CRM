@@ -312,6 +312,25 @@ describe('Task Routes (Integration)', () => {
             expect(statusRes.status).toBe(400);
             expect(statusRes.body.message).toBe('Invalid status. Allowed values are: Todo, In Progress, Review, Done');
         });
+
+        it('should return 400 for invalid priority', async () => {
+            // 1. Create a task
+            const createRes = await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task for Invalid Priority Update' });
+            
+            const taskId = createRes.body.id;
+
+            // 2. Update priority with invalid string
+            const priorityRes = await request(app)
+                .patch(`/api/v1/projects/${testProjectId}/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ priority: 'Super Important' });
+
+            expect(priorityRes.status).toBe(400);
+            expect(priorityRes.body.message).toBe('Invalid priority. Allowed values are: Low, Medium, High, Urgent');
+        });
     });
 
 

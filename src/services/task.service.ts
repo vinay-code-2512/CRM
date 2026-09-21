@@ -189,6 +189,16 @@ export const updateTask = async (
     }
   }
 
+  // NEW SECURITY CHECK: Validate priority if provided
+  if (updateData.priority) {
+    const validPriorities = ['Low', 'Medium', 'High', 'Urgent'];
+    if (!validPriorities.includes(updateData.priority)) {
+      const error: any = new Error('Invalid priority. Allowed values are: Low, Medium, High, Urgent');
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
   // 4. Format dates correctly if dueDate is being updated
   const formattedData: any = { ...updateData };
   if (updateData.dueDate) {
