@@ -1,10 +1,8 @@
-// Import the Express framework
 import express from 'express';
 import {requireAuth} from '../middleware/auth.middleware'
 import { validateBody } from '../middleware/validation.middleware';
-
-// Import the Controller (Manager) that will handle registration requests
 import { registerController, loginController, logoutController, getProfileController, updateProfileController, sendVerificationController, verifyEmailController, forgotPasswordController, resetPasswordController } from '../controllers/auth.controller';
+
 // Create a new Router instance (a mini-app just for Auth routes)
 const router = express.Router();
 

@@ -5,7 +5,7 @@ import { WorkspaceMemberModel } from '../../src/models/WorkspaceMemberPrisma';
 import { ProjectModel } from '../../src/models/ProjectPrisma';
 import { ProjectMemberModel } from '../../src/models/ProjectMemberPrisma';
 import { TaskModel } from '../../src/models/TaskPrisma'
-import { createTask,getTasks,getTaskById } from '../../src/services/task.service';
+import { createTask, getTasks, getTaskById, updateTask } from '../../src/services/task.service';
 
 describe('Task Service', () => {
     let testUserId: string;
@@ -114,7 +114,7 @@ describe('Task Service', () => {
         });
     });
 
-        describe('View Tasks (getTasks & getTaskById)', () => {
+    describe('View Tasks (getTasks & getTaskById)', () => {
         let testTaskId1: number;
         let testTaskId2: number;
 
@@ -175,6 +175,59 @@ describe('Task Service', () => {
                     getTaskById(testUserId, '999', String(testTaskId1))
                 ).rejects.toThrow('Task does not belong to this project');
             });
+        });
+    });
+
+    describe('updateTask', () => {
+        let testTaskId: number;
+
+        beforeEach(async () => {
+            // Setup a task to update
+            const task = await TaskModel.create({
+                projectId: Number(testProjectId),
+                title: 'Original Title',
+                priority: 'Low',
+                dueDate: (globalThis as any).Temporal.Instant.from('2026-10-01T00:00:00Z')
+            });
+            testTaskId = Number(task.id);
+        });
+
+        it('should update specific fields of a task', async () => {
+            const updated = await updateTask(testUserId, testProjectId, String(testTaskId), {
+                title: 'Updated Title',
+                priority: 'High'
+            });
+
+            expect(updated.title).toBe('Updated Title');
+            expect(updated.priority).toBe('High');
+            // Description wasn't passed, so it should stay null
+            expect(updated.description).toBeNull();
+        });
+
+        it('should clear the dueDate when passed null', async () => {
+            const updated = await updateTask(testUserId, testProjectId, String(testTaskId), {
+                dueDate: null
+            });
+
+            expect(updated.dueDate).toBeNull();
+        });
+
+        it('should reject if user is not a project member', async () => {
+            const outsider = await UserModel.create({
+                name: 'Outsider',
+                email: `outsider3${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+
+            await expect(
+                updateTask(String(outsider.id), testProjectId, String(testTaskId), { title: 'Hacked' })
+            ).rejects.toThrow('Access denied. You must be a project member to update tasks.');
+        });
+
+        it('should throw 400 if task belongs to a different project', async () => {
+            await expect(
+                updateTask(testUserId, '999', String(testTaskId), { title: 'Oops' })
+            ).rejects.toThrow('Task does not belong to this project');
         });
     });
 

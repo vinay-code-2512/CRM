@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createTaskController, getTasksController, getTaskByIdController } from '../../src/controllers/task.controller';
+import { createTaskController, getTasksController, getTaskByIdController, updateTaskController } from '../../src/controllers/task.controller';
 import * as TaskService from '../../src/services/task.service';
 
 // 1. Mock the Service Layer
@@ -90,7 +90,7 @@ describe('Task Controller', () => {
     });
 
 
-        describe('getTasksController', () => {
+    describe('getTasksController', () => {
         it('should return 200 with list of tasks', async () => {
             mockReq.params = { projectId: '100' };
             const mockTasks = [
@@ -143,6 +143,40 @@ describe('Task Controller', () => {
         });
     });
 
+
+    describe('updateTaskController', () => {
+        it('should call service and return 200 on success', async () => {
+            mockReq.params = { projectId: '100', taskId: '5' };
+            mockReq.body = { title: 'New Title', priority: 'Urgent' };
+
+            const mockTask = { id: 5, title: 'New Title', priority: 'Urgent' };
+            (TaskService.updateTask as jest.Mock).mockResolvedValue(mockTask);
+
+            await updateTaskController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(TaskService.updateTask).toHaveBeenCalledWith(mockUserId, '100', '5', {
+                title: 'New Title',
+                description: undefined,
+                priority: 'Urgent',
+                labels: undefined,
+                dueDate: undefined
+            });
+            expect(mockRes.status).toHaveBeenCalledWith(200);
+            expect(mockRes.json).toHaveBeenCalledWith(mockTask);
+        });
+
+        it('should pass errors to next()', async () => {
+            mockReq.params = { projectId: '100', taskId: '5' };
+            mockReq.body = { title: 'Fail Task' };
+
+            const error = new Error('Access denied');
+            (TaskService.updateTask as jest.Mock).mockRejectedValue(error);
+
+            await updateTaskController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(mockNext).toHaveBeenCalledWith(error);
+        });
+    });
 
 
 
