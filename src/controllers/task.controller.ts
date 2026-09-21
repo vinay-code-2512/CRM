@@ -56,6 +56,7 @@ export const getTaskByIdController = async (req: Request, res: Response, next: N
   }
 };
 
+
 // ==========================================
 // 4. UPDATE TASK CONTROLLER
 // ==========================================
@@ -65,15 +66,16 @@ export const updateTaskController = async (req: Request, res: Response, next: Ne
     const projectId = String(req.params.projectId);
     const taskId = String(req.params.taskId);
     
-    // We only extract the specific fields allowed for this endpoint
-    const { title, description, priority, labels, dueDate } = req.body;
+    // NEW: We added assigneeId here so the controller extracts it from the request body
+    const { title, description, priority, labels, dueDate, assigneeId } = req.body;
 
     const task = await updateTask(userId, projectId, taskId, {
       title,
       description,
       priority,
       labels,
-      dueDate
+      dueDate,
+      assigneeId
     });
 
     res.status(200).json(task);

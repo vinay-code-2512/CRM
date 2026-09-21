@@ -221,6 +221,59 @@ describe('Task Routes (Integration)', () => {
 
             expect(res.status).toBe(403);
         });
+
+        it('should successfully assign task to a project member', async () => {
+            // 1. Create a task
+            const createRes = await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task to Assign' });
+            
+            const taskId = createRes.body.id;
+
+            // 2. Create a new valid member
+            const memberUser = await UserModel.create({
+                name: 'Valid Route Member',
+                email: `route_member${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+            await ProjectMemberModel.create({ projectId: Number(testProjectId), userId: memberUser.id });
+
+            // 3. Assign the task
+            const assignRes = await request(app)
+                .patch(`/api/v1/projects/${testProjectId}/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ assigneeId: String(memberUser.id) });
+
+            expect(assignRes.status).toBe(200);
+            expect(assignRes.body.assigneeId).toBe(Number(memberUser.id));
+        });
+
+        it('should return 400 when assigning to a non-member', async () => {
+            // 1. Create a task
+            const createRes = await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task to Fail Assign' });
+            
+            const taskId = createRes.body.id;
+
+            // 2. Create an outsider
+            const outsiderUser = await UserModel.create({
+                name: 'Outsider Route',
+                email: `route_outsider${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+
+            // 3. Try to assign the task to the outsider
+            const assignRes = await request(app)
+                .patch(`/api/v1/projects/${testProjectId}/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ assigneeId: String(outsiderUser.id) });
+
+            expect(assignRes.status).toBe(400);
+            expect(assignRes.body.message).toBe('Cannot assign task: Target user is not a member of this project.');
+        });
     });
 
 
