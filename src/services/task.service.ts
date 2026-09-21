@@ -132,6 +132,7 @@ export const updateTask = async (
     title?: string;
     description?: string;
     priority?: string;
+    status?: string; // NEW: Added status support
     labels?: string[];
     dueDate?: string | null;
     assigneeId?: string | null; // NEW: Added assigneeId support
@@ -174,6 +175,16 @@ export const updateTask = async (
     if (!assigneeMembership) {
       const error: any = new Error('Cannot assign task: Target user is not a member of this project.');
       error.statusCode = 400; // Bad Request, because they gave us an invalid assignee
+      throw error;
+    }
+  }
+
+  // NEW SECURITY CHECK: Validate status if provided
+  if (updateData.status) {
+    const validStatuses = ['Todo', 'In Progress', 'Review', 'Done'];
+    if (!validStatuses.includes(updateData.status)) {
+      const error: any = new Error('Invalid status. Allowed values are: Todo, In Progress, Review, Done');
+      error.statusCode = 400;
       throw error;
     }
   }

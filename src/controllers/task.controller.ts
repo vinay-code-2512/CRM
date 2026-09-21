@@ -66,13 +66,14 @@ export const updateTaskController = async (req: Request, res: Response, next: Ne
     const projectId = String(req.params.projectId);
     const taskId = String(req.params.taskId);
     
-    // NEW: We added assigneeId here so the controller extracts it from the request body
-    const { title, description, priority, labels, dueDate, assigneeId } = req.body;
+    // NEW: We added status here so the controller extracts it from the request body
+    const { title, description, priority, status, labels, dueDate, assigneeId } = req.body;
 
     const task = await updateTask(userId, projectId, taskId, {
       title,
       description,
       priority,
+      status,
       labels,
       dueDate,
       assigneeId
