@@ -415,13 +415,13 @@
 
 ### Get Task Details
 
-- **Method:** `GET /tasks/:taskId`
+- **Method:** `GET /projects/:projectId/tasks/:taskId`
 - **Auth Required:** Yes (Project Member)
 - **Success (200):** Task details.
 
 ### Update Task
 
-- **Method:** `PATCH /tasks/:taskId`
+- **Method:** `PATCH /projects/:projectId/tasks/:taskId`
 - **Auth Required:** Yes (Project Member)
 - **Request Body:**
 

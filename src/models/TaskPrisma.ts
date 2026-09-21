@@ -42,8 +42,18 @@ export const TaskModel = {
         return await this._orm.where({ id }).first();
     },
 
-    
+
     async findByProjectId(projectId: number): Promise<TaskRow[]> {
         return await this._orm.where({ projectId }).all();
-    }
+    },
+
+    async update(id: number, data: Partial<TaskCreateInput>): Promise<TaskRow> {
+        return await this._orm.where({ id }).update({
+            ...data,
+            updatedAt: (globalThis as any).Temporal.Now.instant(),
+        });
+    },
+
+
+
 };

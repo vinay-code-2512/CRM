@@ -141,8 +141,8 @@ All sprint work is executed using feature branches. Branch names map directly to
 **Backlog Items Included:**
 
 - [x] US-4.1: Create task
-- US-4.2: View task
-- US-4.3: Update task fields
+- [x] US-4.2: View task
+- [x] US-4.3: Update task fields
 - US-4.4: Assign task
 - US-4.5: Update task status
 - US-4.6: Update task priority
@@ -250,8 +250,8 @@ All sprint work is executed using feature branches. Branch names map directly to
 ### Epic 4 (Tasks)
 
 - [x] US-4.1: Create task -> Sprint 4
-- [ ] US-4.2: View task -> Sprint 4
-- [ ] US-4.3: Update task -> Sprint 4
+- [x] US-4.2: View task -> Sprint 4
+- [x] US-4.3: Update task -> Sprint 4
 - [ ] US-4.4: Assign task -> Sprint 4
 - [ ] US-4.5: Update status -> Sprint 4
 - [ ] US-4.6: Update priority -> Sprint 4

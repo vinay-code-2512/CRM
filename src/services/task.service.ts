@@ -38,6 +38,7 @@ export const createTask = async (
     project.id,
     Number(requesterId)
   );
+
   if (!membership) {
     const error: any = new Error('Access denied. You must be a project member to create tasks.');
     error.statusCode = 403;
@@ -118,4 +119,60 @@ export const getTaskById = async (requesterId: string, projectId: string, taskId
   }
 
   return task;
+};
+
+
+// ==========================================
+// 4. UPDATE TASK FIELDS
+// ==========================================
+export const updateTask = async (
+  requesterId: string,
+  projectId: string,
+  taskId: string,
+  updateData: {
+    title?: string;
+    description?: string;
+    priority?: string;
+    labels?: string[];
+    dueDate?: string | null;
+  }
+) => {
+  // 1. Fetch the task first to make sure it exists
+  const task = await TaskModel.findById(Number(taskId));
+  if (!task) {
+    const error: any = new Error('Task not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // 2. Make sure the task actually belongs to the project in the URL
+  if (task.projectId !== Number(projectId)) {
+    const error: any = new Error('Task does not belong to this project');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // 3. Authorize: Only Project Members can update tasks
+  const membership = await ProjectMemberModel.findByProjectAndUser(
+    Number(projectId),
+    Number(requesterId)
+  );
+  if (!membership) {
+    const error: any = new Error('Access denied. You must be a project member to update tasks.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 4. Format dates correctly if dueDate is being updated
+  const formattedData: any = { ...updateData };
+  if (updateData.dueDate) {
+    formattedData.dueDate = (globalThis as any).Temporal.Instant.from(updateData.dueDate);
+  } else if (updateData.dueDate === null) {
+    // Allow users to clear the due date by explicitly sending null
+    formattedData.dueDate = null;
+  }
+
+  // 5. Update the task in the database
+  const updatedTask = await TaskModel.update(Number(taskId), formattedData);
+  return updatedTask;
 };

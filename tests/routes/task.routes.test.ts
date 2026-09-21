@@ -166,4 +166,64 @@ describe('Task Routes (Integration)', () => {
         });
     });
 
+        describe('PATCH /api/v1/projects/:projectId/tasks/:taskId', () => {
+        it('should return 200 and update task on valid input', async () => {
+            // 1. Create a task
+            const createRes = await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Old Title', priority: 'Low' });
+
+            const taskId = createRes.body.id;
+
+            // 2. Update it
+            const updateRes = await request(app)
+                .patch(`/api/v1/projects/${testProjectId}/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'New Title', priority: 'High' });
+
+            expect(updateRes.status).toBe(200);
+            expect(updateRes.body.title).toBe('New Title');
+            expect(updateRes.body.priority).toBe('High');
+        });
+
+        it('should return 404 if task does not exist', async () => {
+            const res = await request(app)
+                .patch(`/api/v1/projects/${testProjectId}/tasks/999999`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Ghost Task' });
+
+            expect(res.status).toBe(404);
+        });
+
+        it('should return 403 if user is not a project member', async () => {
+            // 1. Create a task
+            const createRes = await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Valid Task' });
+            
+            const taskId = createRes.body.id;
+
+            // 2. Create outsider
+            const outsider = await UserModel.create({
+                name: 'Outsider',
+                email: `outsider4${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+            const outsiderToken = jwt.sign({ userId: String(outsider.id) }, process.env.JWT_SECRET || 'testsecret');
+
+            // 3. Try to update
+            const res = await request(app)
+                .patch(`/api/v1/projects/${testProjectId}/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${outsiderToken}`)
+                .send({ title: 'Hacked Title' });
+
+            expect(res.status).toBe(403);
+        });
+    });
+
+
+
+
 });
