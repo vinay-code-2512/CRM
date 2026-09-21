@@ -143,7 +143,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 - [x] US-4.1: Create task
 - [x] US-4.2: View task
 - [x] US-4.3: Update task fields
-- US-4.4: Assign task
+- [x] US-4.4: Assign task
 - US-4.5: Update task status
 - US-4.6: Update task priority
 - US-4.7: Delete task
@@ -252,7 +252,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 - [x] US-4.1: Create task -> Sprint 4
 - [x] US-4.2: View task -> Sprint 4
 - [x] US-4.3: Update task -> Sprint 4
-- [ ] US-4.4: Assign task -> Sprint 4
+- [x] US-4.4: Assign task -> Sprint 4
 - [ ] US-4.5: Update status -> Sprint 4
 - [ ] US-4.6: Update priority -> Sprint 4
 - [ ] US-4.7: Delete task -> Sprint 4

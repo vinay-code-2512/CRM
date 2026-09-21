@@ -159,7 +159,8 @@ describe('Task Controller', () => {
                 description: undefined,
                 priority: 'Urgent',
                 labels: undefined,
-                dueDate: undefined
+                dueDate: undefined,
+                assigneeId: undefined
             });
             expect(mockRes.status).toHaveBeenCalledWith(200);
             expect(mockRes.json).toHaveBeenCalledWith(mockTask);
@@ -175,6 +176,26 @@ describe('Task Controller', () => {
             await updateTaskController(mockReq as Request, mockRes as Response, mockNext);
 
             expect(mockNext).toHaveBeenCalledWith(error);
+        });
+
+        it('should extract assigneeId and pass it to the service', async () => {
+            mockReq.params = { projectId: '100', taskId: '5' };
+            mockReq.body = { assigneeId: '99' };
+            
+            const mockTask = { id: 5, assigneeId: 99 };
+            (TaskService.updateTask as jest.Mock).mockResolvedValue(mockTask);
+
+            await updateTaskController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(TaskService.updateTask).toHaveBeenCalledWith(mockUserId, '100', '5', {
+                title: undefined,
+                description: undefined,
+                priority: undefined,
+                labels: undefined,
+                dueDate: undefined,
+                assigneeId: '99'
+            });
+            expect(mockRes.json).toHaveBeenCalledWith(mockTask);
         });
     });
 

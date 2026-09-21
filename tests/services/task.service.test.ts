@@ -229,9 +229,36 @@ describe('Task Service', () => {
                 updateTask(testUserId, '999', String(testTaskId), { title: 'Oops' })
             ).rejects.toThrow('Task does not belong to this project');
         });
+    it('should assign a task if target is a project member', async () => {
+        // Create a valid member to assign to
+        const memberUser = await UserModel.create({
+            name: 'Valid Member',
+            email: `member${Math.random()}@test.com`,
+            passwordHash: 'fake'
+        });
+        await ProjectMemberModel.create({ projectId: Number(testProjectId), userId: memberUser.id });
+
+        const updated = await updateTask(testUserId, testProjectId, String(testTaskId), {
+            assigneeId: String(memberUser.id)
+        });
+
+        expect(updated.assigneeId).toBe(Number(memberUser.id));
     });
 
+    it('should reject assignment if target is NOT a project member', async () => {
+        // Create an outsider
+        const outsiderUser = await UserModel.create({
+            name: 'Outsider Assigee',
+            email: `outsider_assignee${Math.random()}@test.com`,
+            passwordHash: 'fake'
+        });
 
+        await expect(
+            updateTask(testUserId, testProjectId, String(testTaskId), { assigneeId: String(outsiderUser.id) })
+        ).rejects.toThrow('Cannot assign task: Target user is not a member of this project.');
+    });
+
+    });
 
 
 

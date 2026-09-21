@@ -121,9 +121,8 @@ export const getTaskById = async (requesterId: string, projectId: string, taskId
   return task;
 };
 
-
 // ==========================================
-// 4. UPDATE TASK FIELDS
+// 4. UPDATE TASK FIELDS (Including Assignment & Status)
 // ==========================================
 export const updateTask = async (
   requesterId: string,
@@ -135,6 +134,7 @@ export const updateTask = async (
     priority?: string;
     labels?: string[];
     dueDate?: string | null;
+    assigneeId?: string | null; // NEW: Added assigneeId support
   }
 ) => {
   // 1. Fetch the task first to make sure it exists
@@ -163,13 +163,34 @@ export const updateTask = async (
     throw error;
   }
 
+  // NEW SECURITY CHECK: If they are trying to assign the task to someone, 
+  // we MUST verify that the assignee is actually part of this project.
+  if (updateData.assigneeId) {
+    const assigneeMembership = await ProjectMemberModel.findByProjectAndUser(
+      Number(projectId),
+      Number(updateData.assigneeId)
+    );
+    
+    if (!assigneeMembership) {
+      const error: any = new Error('Cannot assign task: Target user is not a member of this project.');
+      error.statusCode = 400; // Bad Request, because they gave us an invalid assignee
+      throw error;
+    }
+  }
+
   // 4. Format dates correctly if dueDate is being updated
   const formattedData: any = { ...updateData };
   if (updateData.dueDate) {
     formattedData.dueDate = (globalThis as any).Temporal.Instant.from(updateData.dueDate);
   } else if (updateData.dueDate === null) {
-    // Allow users to clear the due date by explicitly sending null
     formattedData.dueDate = null;
+  }
+
+  // Convert assigneeId string to a number for Prisma, or null to unassign
+  if (updateData.assigneeId) {
+    formattedData.assigneeId = Number(updateData.assigneeId);
+  } else if (updateData.assigneeId === null) {
+    formattedData.assigneeId = null;
   }
 
   // 5. Update the task in the database
