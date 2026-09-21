@@ -5,7 +5,7 @@ import { WorkspaceMemberModel } from '../../src/models/WorkspaceMemberPrisma';
 import { ProjectModel } from '../../src/models/ProjectPrisma';
 import { ProjectMemberModel } from '../../src/models/ProjectMemberPrisma';
 import { TaskModel } from '../../src/models/TaskPrisma'
-import { createTask, getTasks, getTaskById, updateTask } from '../../src/services/task.service';
+import { createTask, getTasks, getTaskById, updateTask, deleteTask } from '../../src/services/task.service';
 
 describe('Task Service', () => {
     let testUserId: string;
@@ -229,65 +229,113 @@ describe('Task Service', () => {
                 updateTask(testUserId, '999', String(testTaskId), { title: 'Oops' })
             ).rejects.toThrow('Task does not belong to this project');
         });
-    it('should assign a task if target is a project member', async () => {
-        // Create a valid member to assign to
-        const memberUser = await UserModel.create({
-            name: 'Valid Member',
-            email: `member${Math.random()}@test.com`,
-            passwordHash: 'fake'
-        });
-        await ProjectMemberModel.create({ projectId: Number(testProjectId), userId: memberUser.id });
+        it('should assign a task if target is a project member', async () => {
+            // Create a valid member to assign to
+            const memberUser = await UserModel.create({
+                name: 'Valid Member',
+                email: `member${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+            await ProjectMemberModel.create({ projectId: Number(testProjectId), userId: memberUser.id });
 
-        const updated = await updateTask(testUserId, testProjectId, String(testTaskId), {
-            assigneeId: String(memberUser.id)
-        });
+            const updated = await updateTask(testUserId, testProjectId, String(testTaskId), {
+                assigneeId: String(memberUser.id)
+            });
 
-        expect(updated.assigneeId).toBe(Number(memberUser.id));
-    });
-
-    it('should reject assignment if target is NOT a project member', async () => {
-        // Create an outsider
-        const outsiderUser = await UserModel.create({
-            name: 'Outsider Assigee',
-            email: `outsider_assignee${Math.random()}@test.com`,
-            passwordHash: 'fake'
+            expect(updated.assigneeId).toBe(Number(memberUser.id));
         });
 
-        await expect(
-            updateTask(testUserId, testProjectId, String(testTaskId), { assigneeId: String(outsiderUser.id) })
-        ).rejects.toThrow('Cannot assign task: Target user is not a member of this project.');
-    });
+        it('should reject assignment if target is NOT a project member', async () => {
+            // Create an outsider
+            const outsiderUser = await UserModel.create({
+                name: 'Outsider Assigee',
+                email: `outsider_assignee${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
 
-    it('should successfully update task status', async () => {
-        const updated = await updateTask(testUserId, testProjectId, String(testTaskId), {
-            status: 'In Progress'
+            await expect(
+                updateTask(testUserId, testProjectId, String(testTaskId), { assigneeId: String(outsiderUser.id) })
+            ).rejects.toThrow('Cannot assign task: Target user is not a member of this project.');
         });
 
-        expect(updated.status).toBe('In Progress');
-    });
+        it('should successfully update task status', async () => {
+            const updated = await updateTask(testUserId, testProjectId, String(testTaskId), {
+                status: 'In Progress'
+            });
 
-    it('should reject invalid statuses', async () => {
-        await expect(
-            updateTask(testUserId, testProjectId, String(testTaskId), { status: 'Super Done' })
-        ).rejects.toThrow('Invalid status. Allowed values are: Todo, In Progress, Review, Done');
-    });
-
-    it('should successfully update task priority', async () => {
-        const updated = await updateTask(testUserId, testProjectId, String(testTaskId), {
-            priority: 'Low'
+            expect(updated.status).toBe('In Progress');
         });
 
-        expect(updated.priority).toBe('Low');
+        it('should reject invalid statuses', async () => {
+            await expect(
+                updateTask(testUserId, testProjectId, String(testTaskId), { status: 'Super Done' })
+            ).rejects.toThrow('Invalid status. Allowed values are: Todo, In Progress, Review, Done');
+        });
+
+        it('should successfully update task priority', async () => {
+            const updated = await updateTask(testUserId, testProjectId, String(testTaskId), {
+                priority: 'Low'
+            });
+
+            expect(updated.priority).toBe('Low');
+        });
+
+        it('should reject invalid priorities', async () => {
+            await expect(
+                updateTask(testUserId, testProjectId, String(testTaskId), { priority: 'Super Important' })
+            ).rejects.toThrow('Invalid priority. Allowed values are: Low, Medium, High, Urgent');
+        });
+
     });
 
-    it('should reject invalid priorities', async () => {
-        await expect(
-            updateTask(testUserId, testProjectId, String(testTaskId), { priority: 'Super Important' })
-        ).rejects.toThrow('Invalid priority. Allowed values are: Low, Medium, High, Urgent');
-    });
 
-    });
+    describe('deleteTask', () => {
+        let testTaskId: number;
 
+        beforeEach(async () => {
+            // Setup a task to delete before each test
+            const task = await TaskModel.create({
+                projectId: Number(testProjectId),
+                title: 'Task to Delete',
+                priority: 'Low'
+            });
+            testTaskId = Number(task.id);
+        });
+
+        it('should successfully delete a task', async () => {
+            // 1. Delete the task
+            await deleteTask(testUserId, testProjectId, String(testTaskId));
+
+            // 2. Try to fetch it again, it should be null/not found
+            const taskInDb = await TaskModel.findById(testTaskId);
+            expect(taskInDb).toBeUndefined();
+        });
+
+        it('should throw 404 if task does not exist', async () => {
+            await expect(
+                deleteTask(testUserId, testProjectId, '999999')
+            ).rejects.toThrow('Task not found');
+        });
+
+        it('should throw 400 if task belongs to a different project', async () => {
+            // Try to delete a task from Project A using Project B's ID in the URL
+            await expect(
+                deleteTask(testUserId, '999', String(testTaskId))
+            ).rejects.toThrow('Task does not belong to this project');
+        });
+
+        it('should reject if user is not a project member', async () => {
+            const outsider = await UserModel.create({
+                name: 'Outsider',
+                email: `outsider_delete${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+
+            await expect(
+                deleteTask(String(outsider.id), testProjectId, String(testTaskId))
+            ).rejects.toThrow('Access denied. You must be a project member to delete tasks.');
+        });
+    });
 
 
 });

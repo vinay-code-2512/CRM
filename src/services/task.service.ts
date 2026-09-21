@@ -218,3 +218,39 @@ export const updateTask = async (
   const updatedTask = await TaskModel.update(Number(taskId), formattedData);
   return updatedTask;
 };
+
+// ==========================================
+// 5. DELETE TASK
+// ==========================================
+export const deleteTask = async (requesterId: string, projectId: string, taskId: string) => {
+  // 1. Fetch the task to ensure it actually exists
+  const task = await TaskModel.findById(Number(taskId));
+  if (!task) {
+    const error: any = new Error('Task not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // 2. Ensure the task belongs to the project specified in the URL
+  // This prevents users from deleting a task from Project B while pretending to be in Project A
+  if (task.projectId !== Number(projectId)) {
+    const error: any = new Error('Task does not belong to this project');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // 3. Security: Check if the person requesting the deletion is a member of this project
+  const membership = await ProjectMemberModel.findByProjectAndUser(
+    Number(projectId),
+    Number(requesterId)
+  );
+  
+  if (!membership) {
+    const error: any = new Error('Access denied. You must be a project member to delete tasks.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 4. Everything is verified! Delete the task from the database.
+  await TaskModel.delete(Number(taskId));
+};

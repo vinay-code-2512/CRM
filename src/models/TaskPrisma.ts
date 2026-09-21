@@ -54,6 +54,14 @@ export const TaskModel = {
         });
     },
 
+        // ==========================================
+    // DELETE TASK
+    // ==========================================
+    // This function takes an ID and deletes that specific task row from the database
+    async delete(id: number): Promise<void> {
+        await this._orm.where({ id }).delete();
+    },
+
 
 
 };

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createTaskController, getTasksController, getTaskByIdController, updateTaskController } from '../../src/controllers/task.controller';
+import { createTaskController, getTasksController, getTaskByIdController, updateTaskController, deleteTaskController } from '../../src/controllers/task.controller';
 import * as TaskService from '../../src/services/task.service';
 
 // 1. Mock the Service Layer
@@ -219,6 +219,32 @@ describe('Task Controller', () => {
                 assigneeId: undefined
             });
             expect(mockRes.json).toHaveBeenCalledWith(mockTask);
+        });
+    });
+
+        describe('deleteTaskController', () => {
+        it('should call service and return 200 on success', async () => {
+            mockReq.params = { projectId: '100', taskId: '5' };
+            
+            // Tell our mock service to pretend it succeeded
+            (TaskService.deleteTask as jest.Mock).mockResolvedValue(undefined);
+
+            await deleteTaskController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(TaskService.deleteTask).toHaveBeenCalledWith(mockUserId, '100', '5');
+            expect(mockRes.status).toHaveBeenCalledWith(200);
+            expect(mockRes.json).toHaveBeenCalledWith({ message: 'Task deleted successfully' });
+        });
+
+        it('should pass errors to next()', async () => {
+            mockReq.params = { projectId: '100', taskId: '5' };
+            
+            const error = new Error('Task not found');
+            (TaskService.deleteTask as jest.Mock).mockRejectedValue(error);
+
+            await deleteTaskController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(mockNext).toHaveBeenCalledWith(error);
         });
     });
 

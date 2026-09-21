@@ -146,7 +146,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 - [x] US-4.4: Assign task
 - [x] US-4.5: Update task status
 - [x] US-4.6: Update task priority
-- US-4.7: Delete task
+- [x] US-4.7: Delete task
 - US-7.1: Task activity recording
 
 **Dependencies:** Sprint 3 (Project Management).
@@ -255,7 +255,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 - [x] US-4.4: Assign task -> Sprint 4
 - [x] US-4.5: Update status -> Sprint 4
 - [x] US-4.6: Update priority -> Sprint 4
-- [ ] US-4.7: Delete task -> Sprint 4
+- [x] US-4.7: Delete task -> Sprint 4
 
 ### Epic 5 & 6 (Kanban + Comments)
 

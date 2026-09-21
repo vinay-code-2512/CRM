@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createTask, getTasks, getTaskById, updateTask } from '../services/task.service';
+import { createTask, getTasks, getTaskById, updateTask, deleteTask } from '../services/task.service';
 
 // ==========================================
 // 1. CREATE TASK CONTROLLER
@@ -80,6 +80,23 @@ export const updateTaskController = async (req: Request, res: Response, next: Ne
     });
 
     res.status(200).json(task);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==========================================
+// 5. DELETE TASK CONTROLLER
+// ==========================================
+export const deleteTaskController = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.userId;
+    const projectId = String(req.params.projectId);
+    const taskId = String(req.params.taskId);
+
+    await deleteTask(userId, projectId, taskId);
+
+    res.status(200).json({ message: 'Task deleted successfully' });
   } catch (error) {
     next(error);
   }

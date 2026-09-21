@@ -333,6 +333,59 @@ describe('Task Routes (Integration)', () => {
         });
     });
 
+        describe('DELETE /api/v1/projects/:projectId/tasks/:taskId', () => {
+        it('should successfully delete a task', async () => {
+            // 1. Create a task to delete
+            const createRes = await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task to be Deleted' });
+            
+            const taskId = createRes.body.id;
+
+            // 2. Delete the task
+            const deleteRes = await request(app)
+                .delete(`/api/v1/projects/${testProjectId}/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(deleteRes.status).toBe(200);
+            expect(deleteRes.body.message).toBe('Task deleted successfully');
+
+            // 3. Verify it's gone by trying to GET it
+            const getRes = await request(app)
+                .get(`/api/v1/projects/${testProjectId}/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`);
+            
+            expect(getRes.status).toBe(404);
+        });
+
+        it('should return 403 if user is not a project member', async () => {
+            // 1. Create task
+            const createRes = await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Another Task' });
+            
+            const taskId = createRes.body.id;
+
+            // 2. Create outsider
+            const outsider = await UserModel.create({
+                name: 'Outsider',
+                email: `outsider_del_route${Math.random()}@test.com`,
+                passwordHash: 'fake'
+            });
+            const outsiderToken = jwt.sign({ userId: String(outsider.id) }, process.env.JWT_SECRET || 'testsecret');
+
+            // 3. Try to delete as outsider
+            const deleteRes = await request(app)
+                .delete(`/api/v1/projects/${testProjectId}/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${outsiderToken}`);
+
+            expect(deleteRes.status).toBe(403);
+            expect(deleteRes.body.message).toBe('Access denied. You must be a project member to delete tasks.');
+        });
+    });
+
 
 
 
