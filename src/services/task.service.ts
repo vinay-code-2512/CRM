@@ -57,3 +57,65 @@ export const createTask = async (
 
   return task;
 };
+
+
+// ==========================================
+// 2. GET ALL TASKS FOR A PROJECT
+// ==========================================
+export const getTasks = async (requesterId: string, projectId: string) => {
+  // 1. Verify project exists
+  const project = await ProjectModel.findById(Number(projectId));
+  if (!project) {
+    const error: any = new Error('Project not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // 2. Authorize: Only Project Members can view tasks
+  const membership = await ProjectMemberModel.findByProjectAndUser(
+    project.id,
+    Number(requesterId)
+  );
+  if (!membership) {
+    const error: any = new Error('Access denied. You must be a project member to view tasks.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // 3. Fetch all tasks
+  const tasks = await TaskModel.findByProjectId(project.id);
+  return tasks;
+};
+
+// ==========================================
+// 3. GET A SINGLE TASK BY ID
+// ==========================================
+export const getTaskById = async (requesterId: string, projectId: string, taskId: string) => {
+  // 1. Fetch the task first to make sure it exists
+  const task = await TaskModel.findById(Number(taskId));
+  if (!task) {
+    const error: any = new Error('Task not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // 2. Make sure the task actually belongs to the project in the URL
+  if (task.projectId !== Number(projectId)) {
+    const error: any = new Error('Task does not belong to this project');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // 3. Authorize: Only Project Members can view it
+  const membership = await ProjectMemberModel.findByProjectAndUser(
+    Number(projectId),
+    Number(requesterId)
+  );
+  if (!membership) {
+    const error: any = new Error('Access denied. You must be a project member to view tasks.');
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return task;
+};
