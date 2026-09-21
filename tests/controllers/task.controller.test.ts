@@ -158,6 +158,7 @@ describe('Task Controller', () => {
                 title: 'New Title',
                 description: undefined,
                 priority: 'Urgent',
+                status: undefined,
                 labels: undefined,
                 dueDate: undefined,
                 assigneeId: undefined
@@ -191,9 +192,31 @@ describe('Task Controller', () => {
                 title: undefined,
                 description: undefined,
                 priority: undefined,
+                status: undefined,
                 labels: undefined,
                 dueDate: undefined,
                 assigneeId: '99'
+            });
+            expect(mockRes.json).toHaveBeenCalledWith(mockTask);
+        });
+
+        it('should extract status and pass it to the service', async () => {
+            mockReq.params = { projectId: '100', taskId: '5' };
+            mockReq.body = { status: 'In Progress' };
+            
+            const mockTask = { id: 5, status: 'In Progress' };
+            (TaskService.updateTask as jest.Mock).mockResolvedValue(mockTask);
+
+            await updateTaskController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(TaskService.updateTask).toHaveBeenCalledWith(mockUserId, '100', '5', {
+                title: undefined,
+                description: undefined,
+                priority: undefined,
+                status: 'In Progress',
+                labels: undefined,
+                dueDate: undefined,
+                assigneeId: undefined
             });
             expect(mockRes.json).toHaveBeenCalledWith(mockTask);
         });

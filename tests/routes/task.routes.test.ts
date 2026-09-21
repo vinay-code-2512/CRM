@@ -274,6 +274,44 @@ describe('Task Routes (Integration)', () => {
             expect(assignRes.status).toBe(400);
             expect(assignRes.body.message).toBe('Cannot assign task: Target user is not a member of this project.');
         });
+
+        it('should successfully update task status', async () => {
+            // 1. Create a task
+            const createRes = await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task for Status Update' });
+            
+            const taskId = createRes.body.id;
+
+            // 2. Update status
+            const statusRes = await request(app)
+                .patch(`/api/v1/projects/${testProjectId}/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ status: 'In Progress' });
+
+            expect(statusRes.status).toBe(200);
+            expect(statusRes.body.status).toBe('In Progress');
+        });
+
+        it('should return 400 for invalid status', async () => {
+            // 1. Create a task
+            const createRes = await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task for Invalid Status Update' });
+            
+            const taskId = createRes.body.id;
+
+            // 2. Update status with invalid string
+            const statusRes = await request(app)
+                .patch(`/api/v1/projects/${testProjectId}/tasks/${taskId}`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ status: 'Super Done' });
+
+            expect(statusRes.status).toBe(400);
+            expect(statusRes.body.message).toBe('Invalid status. Allowed values are: Todo, In Progress, Review, Done');
+        });
     });
 
 

@@ -258,6 +258,20 @@ describe('Task Service', () => {
         ).rejects.toThrow('Cannot assign task: Target user is not a member of this project.');
     });
 
+    it('should successfully update task status', async () => {
+        const updated = await updateTask(testUserId, testProjectId, String(testTaskId), {
+            status: 'In Progress'
+        });
+
+        expect(updated.status).toBe('In Progress');
+    });
+
+    it('should reject invalid statuses', async () => {
+        await expect(
+            updateTask(testUserId, testProjectId, String(testTaskId), { status: 'Super Done' })
+        ).rejects.toThrow('Invalid status. Allowed values are: Todo, In Progress, Review, Done');
+    });
+
     });
 
 
