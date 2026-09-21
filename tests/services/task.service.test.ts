@@ -272,6 +272,20 @@ describe('Task Service', () => {
         ).rejects.toThrow('Invalid status. Allowed values are: Todo, In Progress, Review, Done');
     });
 
+    it('should successfully update task priority', async () => {
+        const updated = await updateTask(testUserId, testProjectId, String(testTaskId), {
+            priority: 'Low'
+        });
+
+        expect(updated.priority).toBe('Low');
+    });
+
+    it('should reject invalid priorities', async () => {
+        await expect(
+            updateTask(testUserId, testProjectId, String(testTaskId), { priority: 'Super Important' })
+        ).rejects.toThrow('Invalid priority. Allowed values are: Low, Medium, High, Urgent');
+    });
+
     });
 
 
