@@ -155,6 +155,36 @@ All sprint work is executed using feature branches. Branch names map directly to
 
 **Git Branch Example:** `feature/SF-016-create-task`
 
+### Sprint 4.5 — Frontend Foundation + Authentication
+
+**Goal:** Build the frontend foundation and implement the initial authentication UI.
+
+**Backlog Items Included:**
+
+- [x] FE-1.1: Frontend project initialization
+- [x] FE-1.2: Frontend architecture and folder structure
+- [x] FE-1.3: Login page
+- [x] FE-1.4: Registration page
+- [x] FE-1.5: Authentication state management
+- [x] FE-1.6: Protected routes
+- [x] FE-1.7: Logout
+
+### Sprint 4.6 — Frontend Workspaces & Projects
+
+**Goal:** Implement UI for workspace management, project creation, and team member management.
+
+**Backlog Items Included:**
+- [x] FE-2.1: Workspace API & Dashboard Integration (Fetch & Empty State)
+- [x] FE-2.2: Create Workspace Modal
+- [ ] FE-2.3: Workspace Details & Project Listing
+- [ ] FE-2.4: Create Project Form
+- [ ] FE-2.5: Manage Workspace Members
+
+### Sprint 4.7 — Frontend Tasks & Kanban
+
+**Goal:** Implement task lists, task details, and interactive drag-and-drop Kanban board.
+*(Backlog to be detailed when Sprint begins)*
+
 ### Sprint 5 — Kanban + Collaboration
 
 **Goal:** Provide visual board retrieval and team discussion features.

@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import db from '../src/lib/prisma';
 
 // Explicitly load .env.test, overriding any existing variables
 dotenv.config({ 

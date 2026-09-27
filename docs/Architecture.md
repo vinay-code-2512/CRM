@@ -196,7 +196,7 @@ Authorization ensures users can only access data they own or are permitted to se
 
 ---
 
-## 8. Data Access Strategy
+## 9. Data Access Strategy
 
 Data access is handled by using Prisma Client directly within the Service layer.
 
@@ -204,7 +204,7 @@ Data access is handled by using Prisma Client directly within the Service layer.
 
 ---
 
-## 9. API Architecture
+## 10. API Architecture
 
 The system exposes a standard REST API.
 
@@ -318,9 +318,9 @@ Frontend development is intentionally delayed to prevent integration thrashing.
 
 Backend Foundation → Authentication → Workspace → Projects → Tasks
 
-**→ (Approx. 50–60% Core Backend Stability)**
+**→ (50% Core Backend Stability Achieved - Sprint 4 Completed)**
 
-→ Frontend Development Begins
+→ Frontend Development Commencing
 
 → Frontend + Backend Development continues in parallel.
 
@@ -367,6 +367,16 @@ While built as a monolith, the architecture is designed to scale gracefully in t
 | **Error Handling** | Centralized Middleware | Ensures consistent, safe API responses and prevents secret leakage. |
 
 | **Testing Approach**| Continuous API/Unit Tests | Ensures features are stable as they are built, rather than bolting tests on at the end. |
+
+| **Frontend Framework** | React + Vite + TypeScript | High performance SPA tooling, excellent ecosystem, unified language stack. |
+
+| **Frontend Styling** | Tailwind CSS | Utility-first, clean, professional, responsive UI without massive custom CSS files. |
+
+| **Server State** | TanStack Query + Axios | Robust API fetching, caching, and mutation handling decoupled from global state. |
+
+| **Client State** | Redux Toolkit | Centralized state management exclusively for client-side/auth state. |
+
+| **Frontend Routing** | React Router | Industry standard for SPA routing, protecting auth boundaries, and dynamic URLs. |
 
 ---
 

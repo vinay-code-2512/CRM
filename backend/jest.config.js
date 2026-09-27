@@ -10,5 +10,5 @@ module.exports = {
     // Some TS imports use .js extension
     '^(\\.{1,2}/.*)\\.js$': '$1'
   },
-  setupFiles: ['<rootDir>/tests/setup.ts']
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
 }; 
