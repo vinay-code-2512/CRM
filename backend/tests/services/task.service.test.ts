@@ -308,7 +308,7 @@ describe('Task Service', () => {
 
             // 2. Try to fetch it again, it should be null/not found
             const taskInDb = await TaskModel.findById(testTaskId);
-            expect(taskInDb).toBeUndefined();
+           expect(taskInDb).toBeNull();
         });
 
         it('should throw 404 if task does not exist', async () => {

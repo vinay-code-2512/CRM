@@ -40,7 +40,7 @@
 
 - **Auth Required:** No
 
-- **Request Body:** `{ "name": "John", "email": "john@test.com", "password": "SecurePassword123" }`
+- **Request Body:** `{ "name": "John", "email": "john@test.com", "password":    "SecurePassword123" }`
 
 - **Success (201):** `{ "message": "Registration successful. Please verify email.", "userId": "..." }`
 
@@ -52,7 +52,17 @@
 
 - **Request Body:** `{ "email": "john@test.com", "password": "SecurePassword123" }`
 
-- **Success (200):** `{ "token": "jwt.token.string" }`
+- **Success (200):** 
+  ```json
+  {
+    "token": "jwt.token.string",
+    "user": {
+      "_id": "string",
+      "name": "string",
+      "email": "string"
+    }
+  }
+  ```
 
 ### Logout
 
