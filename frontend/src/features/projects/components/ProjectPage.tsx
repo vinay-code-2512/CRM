@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTasks } from '../../tasks/api/tasks';
+import { CreateTaskModal } from '../../tasks/components/CreateTaskModal';
 
 // Helper: maps priority to a colored badge
 const priorityColor = (priority: string) => {
@@ -31,7 +32,16 @@ export const ProjectPage: React.FC = () => {
     // 2. Fetch all tasks for this project
     const { data: tasks, isLoading } = useTasks(projectId!);
 
+    // 3. State for the Create Task Modal
+    const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+
     return (
+        <>
+        <CreateTaskModal
+            isOpen={isCreateTaskModalOpen}
+            onClose={() => setIsCreateTaskModalOpen(false)}
+            projectId={projectId!}
+        />
         <div className="flex h-screen bg-slate-50 font-sans flex-col">
 
             {/* Header */}
@@ -47,8 +57,11 @@ export const ProjectPage: React.FC = () => {
                     <h1 className="text-xl font-bold text-slate-800">Project Tasks</h1>
                 </div>
 
-                {/* We will wire this button in FE-3.2 */}
-                <button className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+                {/* Button opens the Create Task modal */}
+                <button 
+                    onClick={() => setIsCreateTaskModalOpen(true)}
+                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                >
                     + New Task
                 </button>
             </header>
@@ -118,7 +131,7 @@ export const ProjectPage: React.FC = () => {
                                         {/* Due Date */}
                                         <td className="px-6 py-4 text-sm text-slate-500">
                                             {task.dueDate
-                                                ? new Date(task.dueDate).toLocaleDateString()
+                                                ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                                                 : '—'}
                                         </td>
                                     </tr>
@@ -129,5 +142,6 @@ export const ProjectPage: React.FC = () => {
                 )}
             </main>
         </div>
+        </>
     );
 };
