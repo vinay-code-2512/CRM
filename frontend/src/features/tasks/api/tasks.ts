@@ -62,3 +62,33 @@ export const useCreateTask = (projectId: string) => {
         },
     });
 };
+
+// Data we send when updating an existing task
+export interface UpdateTaskData {
+    projectId: string;
+    taskId: string;
+    title?: string;
+    description?: string;
+    status?: string;
+    priority?: string;
+    dueDate?: string | null;
+    assigneeId?: string | null;
+}
+
+// Update an existing task (PATCH)
+export const updateTask = async (data: UpdateTaskData) => {
+    const { projectId, taskId, ...fields } = data;
+    const response = await api.patch(`/projects/${projectId}/tasks/${taskId}`, fields);
+    return response.data;
+};
+
+// Mutation hook — auto-refreshes the task list after updating
+export const useUpdateTask = (projectId: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: updateTask,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+        },
+    });
+};
