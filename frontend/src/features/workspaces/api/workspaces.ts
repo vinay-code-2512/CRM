@@ -55,3 +55,18 @@ export const useCreateWorkspace = () => {
         },
     });
 };
+
+// 7. Fetch a single workspace by its ID
+export const fetchWorkspaceById = async (id: string): Promise<Workspace> => {
+    const response = await api.get<Workspace>(`/workspaces/${id}`);
+    return response.data;
+};
+
+// 8. React Query hook to get a single workspace
+export const useWorkspace = (id: string) => {
+    return useQuery({
+        queryKey: ['workspace', id],
+        queryFn: () => fetchWorkspaceById(id),
+        enabled: !!id, // Only run if ID is defined
+    });
+};

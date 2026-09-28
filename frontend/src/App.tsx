@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { CreateWorkspaceModal } from './features/workspaces/components/CreateWorkspaceModal';
 import { logout } from './store/authSlice';
 import type { RootState } from './store/store';
@@ -7,6 +8,7 @@ import { useWorkspaces } from './features/workspaces/api/workspaces';
 
 function App() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
   
   // 1. Fetch workspaces using our new React Query hook
@@ -55,7 +57,11 @@ function App() {
             
             {/* List the actual workspaces if we have them */}
             {!isLoading && workspaces && workspaces.length > 0 && workspaces.map(ws => (
-                <button key={ws.id} className="w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-colors group">
+                <button 
+                    key={ws.id} 
+                    onClick={() => navigate(`/workspaces/${ws.id}`)}
+                    className="w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg hover:bg-slate-800 hover:text-white transition-colors group"
+                >
                     <svg className="w-5 h-5 mr-3 text-slate-500 group-hover:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
@@ -155,7 +161,11 @@ function App() {
                      <h2 className="text-2xl font-bold text-slate-800 mb-6">Your Workspaces</h2>
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                          {workspaces.map(ws => (
-                             <div key={ws.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6 cursor-pointer">
+                             <div 
+                                 key={ws.id} 
+                                 onClick={() => navigate(`/workspaces/${ws.id}`)}
+                                 className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6 cursor-pointer hover:border-indigo-400"
+                             >
                                  <h3 className="text-lg font-bold text-slate-900 mb-2">{ws.name}</h3>
                                  <p className="text-slate-500 text-sm mb-4">{ws.description || 'No description provided.'}</p>
                                  <div className="text-xs text-slate-400">Created: {new Date(ws.createdAt).toLocaleDateString()}</div>
