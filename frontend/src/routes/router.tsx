@@ -5,6 +5,7 @@ import { RegisterForm } from '../features/auth/components/RegisterForm'
 // Import the new Bouncer
 import { ProtectedRoute } from '../features/auth/components/ProtectedRoute'
 import { WorkspacePage } from '../features/workspaces/components/WorkspacePage'
+import { ProjectPage } from '../features/projects/components/ProjectPage'
 
 export const router = createBrowserRouter([
   {
@@ -29,6 +30,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <WorkspacePage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/workspaces/:workspaceId/projects/:projectId',
+    element: (
+      <ProtectedRoute>
+        <ProjectPage />
       </ProtectedRoute>
     ),
   }

@@ -183,7 +183,12 @@ All sprint work is executed using feature branches. Branch names map directly to
 ### Sprint 4.7 — Frontend Tasks & Kanban
 
 **Goal:** Implement task lists, task details, and interactive drag-and-drop Kanban board.
-*(Backlog to be detailed when Sprint begins)*
+
+**Backlog Items Included:**
+- [x] FE-3.1: Task API Layer & Project Page with Task List
+- [ ] FE-3.2: Create Task Modal
+- [ ] FE-3.3: Task Detail View & Edit
+- [ ] FE-3.4: Kanban Board View (drag-and-drop status columns)
 
 ### Sprint 5 — Kanban + Collaboration
 
