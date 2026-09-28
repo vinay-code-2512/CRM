@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { type Task, useTasks } from '../../tasks/api/tasks';
 import { CreateTaskModal } from '../../tasks/components/CreateTaskModal';
 import { TaskDetailPanel } from '../../tasks/components/TaskDetailPanel';
+import { KanbanBoard } from '../../tasks/components/KanbanBoard';
 
 // Helper: maps priority to a colored badge
 const priorityColor = (priority: string) => {
@@ -39,6 +40,9 @@ export const ProjectPage: React.FC = () => {
     // 4. State for the Task Detail side panel (null = closed)
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
+    // 5. Toggle between 'table' and 'board' view
+    const [viewMode, setViewMode] = useState<'table' | 'board'>('table');
+
     return (
         <>
         <CreateTaskModal
@@ -66,13 +70,39 @@ export const ProjectPage: React.FC = () => {
                     <h1 className="text-xl font-bold text-slate-800">Project Tasks</h1>
                 </div>
 
-                {/* Button opens the Create Task modal */}
-                <button 
-                    onClick={() => setIsCreateTaskModalOpen(true)}
-                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
-                >
-                    + New Task
-                </button>
+                <div className="flex items-center gap-3">
+                    {/* View Toggle Buttons */}
+                    <div className="flex bg-slate-100 rounded-lg p-0.5">
+                        <button
+                            onClick={() => setViewMode('table')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                viewMode === 'table' 
+                                    ? 'bg-white text-slate-900 shadow-sm' 
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            Table
+                        </button>
+                        <button
+                            onClick={() => setViewMode('board')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                viewMode === 'board' 
+                                    ? 'bg-white text-slate-900 shadow-sm' 
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            Board
+                        </button>
+                    </div>
+
+                    {/* Button opens the Create Task modal */}
+                    <button 
+                        onClick={() => setIsCreateTaskModalOpen(true)}
+                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                    >
+                        + New Task
+                    </button>
+                </div>
             </header>
 
             {/* Main Content */}
@@ -100,8 +130,8 @@ export const ProjectPage: React.FC = () => {
                     </div>
                 )}
 
-                {/* Task Table */}
-                {!isLoading && tasks && tasks.length > 0 && (
+                {/* Task Table — only shown in table mode */}
+                {!isLoading && tasks && tasks.length > 0 && viewMode === 'table' && (
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                         <table className="w-full">
                             <thead>
@@ -152,6 +182,15 @@ export const ProjectPage: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+                )}
+
+                {/* Kanban Board — only shown in board mode */}
+                {!isLoading && tasks && tasks.length > 0 && viewMode === 'board' && (
+                    <KanbanBoard
+                        tasks={tasks}
+                        projectId={projectId!}
+                        onTaskClick={(task) => setSelectedTask(task)}
+                    />
                 )}
             </main>
         </div>
