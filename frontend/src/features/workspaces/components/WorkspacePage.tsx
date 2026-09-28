@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useWorkspace } from '../api/workspaces';
 import { useProjects } from '../../projects/api/projects';
+import { CreateProjectModal } from '../../projects/components/CreateProjectModal';
+
 
 export const WorkspacePage: React.FC = () => {
     // 1. Get the workspaceId from the URL (e.g., /workspaces/1)
@@ -12,6 +14,9 @@ export const WorkspacePage: React.FC = () => {
 
     // 3. Fetch the projects belonging to this workspace
     const { data: projects, isLoading: isProjectsLoading } = useProjects(workspaceId!);
+
+    // 4. State for the Create Project Modal
+    const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
 
     if (isWorkspaceLoading) {
         return (
@@ -26,6 +31,12 @@ export const WorkspacePage: React.FC = () => {
     }
 
     return (
+        <>
+        <CreateProjectModal 
+            isOpen={isCreateProjectModalOpen} 
+            onClose={() => setIsCreateProjectModalOpen(false)} 
+            workspaceId={workspaceId!} 
+        />
         <div className="flex h-screen bg-slate-50 font-sans flex-col">
             
             {/* Header */}
@@ -37,8 +48,11 @@ export const WorkspacePage: React.FC = () => {
                     <h1 className="text-xl font-bold text-slate-800">{workspace.name}</h1>
                 </div>
                 
-                {/* We will build this button in FE-2.4 */}
-                <button className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+                {/* Button opens the modal */}
+                <button 
+                    onClick={() => setIsCreateProjectModalOpen(true)}
+                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                >
                     + New Project
                 </button>
             </header>
@@ -83,5 +97,6 @@ export const WorkspacePage: React.FC = () => {
                 )}
             </main>
         </div>
+        </>
     );
 };

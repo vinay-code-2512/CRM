@@ -177,7 +177,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 - [x] FE-2.1: Workspace API & Dashboard Integration (Fetch & Empty State)
 - [x] FE-2.2: Create Workspace Modal
 - [x] FE-2.3: Workspace Details & Project Listing
-- [ ] FE-2.4: Create Project Form
+- [x] FE-2.4: Create Project Form
 - [ ] FE-2.5: Manage Workspace Members
 
 ### Sprint 4.7 — Frontend Tasks & Kanban
