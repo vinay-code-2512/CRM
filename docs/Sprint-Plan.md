@@ -176,7 +176,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 **Backlog Items Included:**
 - [x] FE-2.1: Workspace API & Dashboard Integration (Fetch & Empty State)
 - [x] FE-2.2: Create Workspace Modal
-- [ ] FE-2.3: Workspace Details & Project Listing
+- [x] FE-2.3: Workspace Details & Project Listing
 - [ ] FE-2.4: Create Project Form
 - [ ] FE-2.5: Manage Workspace Members
 
