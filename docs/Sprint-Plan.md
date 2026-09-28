@@ -187,7 +187,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 **Backlog Items Included:**
 - [x] FE-3.1: Task API Layer & Project Page with Task List
 - [x] FE-3.2: Create Task Modal
-- [ ] FE-3.3: Task Detail View & Edit
+- [x] FE-3.3: Task Detail View & Edit
 - [ ] FE-3.4: Kanban Board View (drag-and-drop status columns)
 
 ### Sprint 5 — Kanban + Collaboration

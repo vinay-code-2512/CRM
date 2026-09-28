@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useTasks } from '../../tasks/api/tasks';
+import { type Task, useTasks } from '../../tasks/api/tasks';
 import { CreateTaskModal } from '../../tasks/components/CreateTaskModal';
+import { TaskDetailPanel } from '../../tasks/components/TaskDetailPanel';
 
 // Helper: maps priority to a colored badge
 const priorityColor = (priority: string) => {
@@ -35,11 +36,19 @@ export const ProjectPage: React.FC = () => {
     // 3. State for the Create Task Modal
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
 
+    // 4. State for the Task Detail side panel (null = closed)
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
     return (
         <>
         <CreateTaskModal
             isOpen={isCreateTaskModalOpen}
             onClose={() => setIsCreateTaskModalOpen(false)}
+            projectId={projectId!}
+        />
+        <TaskDetailPanel
+            task={selectedTask}
+            onClose={() => setSelectedTask(null)}
             projectId={projectId!}
         />
         <div className="flex h-screen bg-slate-50 font-sans flex-col">
@@ -105,7 +114,11 @@ export const ProjectPage: React.FC = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {tasks.map(task => (
-                                    <tr key={task.id} className="hover:bg-slate-50 transition-colors cursor-pointer">
+                                    <tr 
+                                        key={task.id} 
+                                        onClick={() => setSelectedTask(task)}
+                                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                                    >
                                         {/* Task Title */}
                                         <td className="px-6 py-4">
                                             <span className="font-medium text-slate-900">{task.title}</span>
