@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useWorkspace } from '../api/workspaces';
 import { useProjects } from '../../projects/api/projects';
 import { CreateProjectModal } from '../../projects/components/CreateProjectModal';
@@ -9,6 +9,7 @@ import { AddMemberModal } from './AddMemberModal';
 export const WorkspacePage: React.FC = () => {
     // 1. Get the workspaceId from the URL (e.g., /workspaces/1)
     const { workspaceId } = useParams<{ workspaceId: string }>();
+    const navigate = useNavigate();
 
     // 2. Fetch the single workspace data
     const { data: workspace, isLoading: isWorkspaceLoading } = useWorkspace(workspaceId!);
@@ -110,7 +111,11 @@ export const WorkspacePage: React.FC = () => {
                 {!isProjectsLoading && projects && projects.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {projects.map(project => (
-                            <div key={project.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6 cursor-pointer hover:border-indigo-300">
+                            <div 
+                                key={project.id} 
+                                onClick={() => navigate(`/workspaces/${workspaceId}/projects/${project.id}`)}
+                                className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6 cursor-pointer hover:border-indigo-300"
+                            >
                                 <h3 className="text-lg font-bold text-slate-900 mb-2">{project.name}</h3>
                                 <p className="text-slate-500 text-sm mb-4">{project.description || 'No description provided.'}</p>
                             </div>
