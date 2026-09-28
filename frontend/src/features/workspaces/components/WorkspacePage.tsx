@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useWorkspace } from '../api/workspaces';
 import { useProjects } from '../../projects/api/projects';
 import { CreateProjectModal } from '../../projects/components/CreateProjectModal';
+import { AddMemberModal } from './AddMemberModal';
 
 
 export const WorkspacePage: React.FC = () => {
@@ -17,6 +18,9 @@ export const WorkspacePage: React.FC = () => {
 
     // 4. State for the Create Project Modal
     const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+
+    // 5. State for the Add Member Modal
+    const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
 
     if (isWorkspaceLoading) {
         return (
@@ -37,6 +41,11 @@ export const WorkspacePage: React.FC = () => {
             onClose={() => setIsCreateProjectModalOpen(false)} 
             workspaceId={workspaceId!} 
         />
+        <AddMemberModal 
+            isOpen={isAddMemberModalOpen} 
+            onClose={() => setIsAddMemberModalOpen(false)} 
+            workspaceId={workspaceId!} 
+        />
         <div className="flex h-screen bg-slate-50 font-sans flex-col">
             
             {/* Header */}
@@ -48,13 +57,26 @@ export const WorkspacePage: React.FC = () => {
                     <h1 className="text-xl font-bold text-slate-800">{workspace.name}</h1>
                 </div>
                 
-                {/* Button opens the modal */}
-                <button 
-                    onClick={() => setIsCreateProjectModalOpen(true)}
-                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
-                >
-                    + New Project
-                </button>
+                <div className="flex gap-3">
+                    {/* Button opens the member modal */}
+                    <button 
+                        onClick={() => setIsAddMemberModalOpen(true)}
+                        className="px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors shadow-sm flex items-center"
+                    >
+                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg>
+                        Add Member
+                    </button>
+
+                    {/* Button opens the project modal */}
+                    <button 
+                        onClick={() => setIsCreateProjectModalOpen(true)}
+                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                    >
+                        + New Project
+                    </button>
+                </div>
             </header>
 
             {/* Main Content */}
