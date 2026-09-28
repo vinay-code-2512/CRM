@@ -70,3 +70,27 @@ export const useWorkspace = (id: string) => {
         enabled: !!id, // Only run if ID is defined
     });
 };
+
+// 9. Data required to add a new member
+export interface AddMemberData {
+    workspaceId: string;
+    email: string;
+    role: 'Admin' | 'Member';
+}
+
+// 10. API call to add a member
+export const addWorkspaceMember = async (data: AddMemberData) => {
+    // This hits the backend endpoint you created earlier!
+    const response = await api.post(`/workspaces/${data.workspaceId}/members`, {
+        email: data.email,
+        role: data.role,
+    });
+    return response.data;
+};
+
+// 11. React Query mutation hook
+export const useAddWorkspaceMember = () => {
+    return useMutation({
+        mutationFn: addWorkspaceMember,
+    });
+};
