@@ -294,11 +294,11 @@ All sprint work is executed using feature branches. Branch names map directly to
 
 ### Epic 5 & 6 (Kanban + Comments)
 
-- [ ] US-5.1: Retrieve Kanban board -> Sprint 5
-- [ ] US-5.2: Board task movement -> Sprint 5
-- [ ] US-6.1: Create Comment -> Sprint 5
-- [ ] US-6.2: Edit/Delete comment -> Sprint 5
-- [ ] US-6.3: Admin moderate comments -> Sprint 5
+- [x] US-5.1: Retrieve Kanban board -> Sprint 5
+- [x] US-5.2: Board task movement -> Sprint 5
+- [x] US-6.1: Create Comment -> Sprint 5
+- [x] US-6.2: Edit/Delete comment -> Sprint 5
+- [x] US-6.3: Admin moderate comments -> Sprint 5
 
 ### Epic 7 & 8 (Activity + Search)
 

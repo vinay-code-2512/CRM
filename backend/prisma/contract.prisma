@@ -11,6 +11,7 @@ model User {
   profileData              Json?
   createdAt                DateTime @default(now())
   updatedAt                DateTime
+  @@map("user")
 }
 
 model Workspace {
@@ -19,6 +20,7 @@ model Workspace {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime
+  @@map("workspace")
 }
 
 model WorkspaceMember {
@@ -30,6 +32,7 @@ model WorkspaceMember {
   updatedAt   DateTime
 
   @@unique([workspaceId, userId])
+  @@map("workspaceMember")
 }
 
 model Project {
@@ -40,6 +43,7 @@ model Project {
   isArchived  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime
+  @@map("project")
 }
 
 model ProjectMember {
@@ -50,9 +54,8 @@ model ProjectMember {
   updatedAt DateTime
   
   @@unique([projectId, userId])
+  @@map("projectMember")
 }
-
-
 
 model Task {
   id          Int       @id @default(autoincrement())
@@ -66,4 +69,15 @@ model Task {
   assigneeId  Int?      // Optional: A task doesn't have to be assigned right away
   createdAt   DateTime  @default(now())
   updatedAt   DateTime
+  @@map("task")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  taskId    Int
+  userId    Int
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  @@map("comment")
 }
