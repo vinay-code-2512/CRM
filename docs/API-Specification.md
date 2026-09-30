@@ -78,7 +78,9 @@
 
 - **Architecture Note:** Verification and password reset tokens are generated as **stateless, short-lived JWTs**. The signing-secret derivation for reset tokens must incorporate the user's current password hash, ensuring that changing the password immediately invalidates previously issued reset tokens. This avoids introducing unnecessary token collections into the database.
 
-- **Verify Email:** `POST /auth/verify-email` (Body: `{ "token": "..." }`)
+- **Send Verification Email:** `POST /auth/send-verification` (Auth Required: Yes)
+
+- **Verify Email:** `GET /auth/verify-email?token=...` (Token is in query string)
 
 - **Forgot Password:** `POST /auth/forgot-password` (Body: `{ "email": "..." }`)
 
@@ -90,7 +92,7 @@
 
 ### Get Current User
 
-- **Method:** `GET /users/me`
+- **Method:** `GET /auth/me`
 
 - **Auth Required:** Yes
 
@@ -98,7 +100,7 @@
 
 ### Update Profile
 
-- **Method:** `PATCH /users/me`
+- **Method:** `PUT /auth/me`
 
 - **Auth Required:** Yes
 
@@ -421,8 +423,24 @@
   - `search`: Simple text match on title.
   - `page`, `limit`: Pagination.
 
-- **Success (200):** Paginated array of tasks.
-
+- **Success (200):** 
+  ```json
+  {
+    "data": [
+      {
+        "id": 1,
+        "title": "Setup database",
+        "status": "Todo"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 1,
+      "totalPages": 1
+    }
+  }
+  ```
 ### Get Task Details
 
 - **Method:** `GET /projects/:projectId/tasks/:taskId`
@@ -485,7 +503,7 @@
 
 ### Update Comment
 
-- **Method:** `PATCH /comments/:commentId`
+- **Method:** `PATCH /tasks/:taskId/comments/:commentId`
 
 - **Auth Required:** Yes (**Strictly Comment Author**)
 
@@ -495,7 +513,7 @@
 
 ### Delete Comment
 
-- **Method:** `DELETE /comments/:commentId`
+- **Method:** `DELETE /tasks/:taskId/comments/:commentId`
 
 - **Auth Required:** Yes (**Comment Author, Workspace Owner, or Workspace Admin**)
 

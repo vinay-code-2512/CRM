@@ -167,4 +167,32 @@ Allow / Deny Request
 
 ---
 
+# 11. Search & Filter Flow
+
+```text
+Project Board / Task List
+     ↓
+Enter Search Term / Select Filters
+     ↓
+Apply
+     ↓
+Backend Returns Paginated Data
+     ↓
+UI Refreshes Task List
+```
+
+# 12. Activity Viewing Flow
+
+```text
+Project Dashboard / Task Details
+     ↓
+Open Activity Feed
+     ↓
+Backend Returns Paginated Audit Logs
+     ↓
+View Recent Actions
+```
+
+---
+
 **End of User Flows**

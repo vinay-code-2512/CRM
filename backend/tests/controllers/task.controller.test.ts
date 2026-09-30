@@ -19,7 +19,8 @@ describe('Task Controller', () => {
         mockReq = {
             user: { userId: mockUserId } as any, // Simulates a logged-in user
             params: {},                          // Simulates URL params like /:projectId
-            body: {}                             // Simulates JSON body payload
+            body: {},                            // Simulates JSON body payload
+            query: {}                            // Simulates query string params like ?page=1
         };
 
         // Reset our fake Express Response object
@@ -91,24 +92,45 @@ describe('Task Controller', () => {
 
 
     describe('getTasksController', () => {
-        it('should return 200 with list of tasks', async () => {
+        it('should return 200 with paginated result', async () => {
             mockReq.params = { projectId: '100' };
-            const mockTasks = [
-                { id: 1, title: 'Task A' },
-                { id: 2, title: 'Task B' }
-            ];
+            mockReq.query = {};
+            const mockResult = {
+                data: [{ id: 1, title: 'Task A' }, { id: 2, title: 'Task B' }],
+                pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
+            };
 
-            (TaskService.getTasks as jest.Mock).mockResolvedValue(mockTasks);
+            (TaskService.getTasks as jest.Mock).mockResolvedValue(mockResult);
 
             await getTasksController(mockReq as Request, mockRes as Response, mockNext);
 
-            expect(TaskService.getTasks).toHaveBeenCalledWith(mockUserId, '100');
+            expect(TaskService.getTasks).toHaveBeenCalledWith(mockUserId, '100', {}, { page: 1, limit: 20 });
             expect(mockRes.status).toHaveBeenCalledWith(200);
-            expect(mockRes.json).toHaveBeenCalledWith(mockTasks);
+            expect(mockRes.json).toHaveBeenCalledWith(mockResult);
+        });
+
+        it('should pass filters and pagination from query string', async () => {
+            mockReq.params = { projectId: '100' };
+            mockReq.query = { status: 'Done', search: 'bug', page: '2', limit: '5' };
+            const mockResult = {
+                data: [{ id: 3, title: 'Bug Fix' }],
+                pagination: { page: 2, limit: 5, total: 6, totalPages: 2 },
+            };
+
+            (TaskService.getTasks as jest.Mock).mockResolvedValue(mockResult);
+
+            await getTasksController(mockReq as Request, mockRes as Response, mockNext);
+
+            expect(TaskService.getTasks).toHaveBeenCalledWith(
+                mockUserId, '100',
+                { status: 'Done', search: 'bug' },
+                { page: 2, limit: 5 }
+            );
         });
 
         it('should pass errors to next()', async () => {
             mockReq.params = { projectId: '100' };
+            mockReq.query = {};
             const error = new Error('Not a member');
             (TaskService.getTasks as jest.Mock).mockRejectedValue(error);
 
