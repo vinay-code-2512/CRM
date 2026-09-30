@@ -124,9 +124,11 @@ describe('Task Routes (Integration)', () => {
                 .set('Authorization', `Bearer ${authToken}`);
 
             expect(res.status).toBe(200);
-            expect(res.body.length).toBe(2);
-            expect(res.body[0].title).toBe('Task One');
-            expect(res.body[1].title).toBe('Task Two');
+            expect(res.body).toHaveProperty('data');
+            expect(res.body).toHaveProperty('pagination');
+            expect(res.body.data.length).toBe(2);
+            expect(res.body.pagination.total).toBe(2);
+            expect(res.body.pagination.page).toBe(1);
         });
 
         it('should return 401 if not authenticated', async () => {

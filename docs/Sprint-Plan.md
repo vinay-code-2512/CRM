@@ -219,11 +219,11 @@ All sprint work is executed using feature branches. Branch names map directly to
 
 **Backlog Items Included:**
 
-- US-7.1: Activity/audit trail recording *(Note: Sprint 6 focuses on activity viewing/formalization, search/filtering/pagination. Recording is handled incrementally in Sprints 2–5).*
-- US-7.2: Activity viewing
-- US-8.1: Search
-- US-8.2: Filtering
-- US-8.3: Pagination
+- [ ] US-7.1: Activity/audit trail recording *(Note: Sprint 6 focuses on activity viewing/formalization, search/filtering/pagination. Recording is handled incrementally in Sprints 2–5).*
+- [ ] US-7.2: Activity viewing
+- [x] US-8.1: Search
+- [x] US-8.2: Filtering
+- [x] US-8.3: Pagination
 
 **Dependencies:** Sprints 4 and 5.
 
@@ -304,9 +304,9 @@ All sprint work is executed using feature branches. Branch names map directly to
 
 - [ ] US-7.1: Activity recording -> Distributed / Sprint 6
 - [ ] US-7.2: Activity viewing -> Sprint 6
-- [ ] US-8.1: Search -> Sprint 6
-- [ ] US-8.2: Filtering -> Sprint 6
-- [ ] US-8.3: Pagination -> Sprint 6
+- [x] US-8.1: Search -> Sprint 6
+- [x] US-8.2: Filtering -> Sprint 6
+- [x] US-8.3: Pagination -> Sprint 6
 
 ### Epics 11 & 12 (Tech Foundation & Quality)
 

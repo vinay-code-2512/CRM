@@ -136,11 +136,12 @@ describe('Task Service', () => {
         });
 
         describe('getTasks (List)', () => {
-            it('should return all tasks for a valid project member', async () => {
-                const tasks = await getTasks(testUserId, testProjectId);
-                expect(tasks.length).toBe(2);
-                expect(tasks[0].title).toBe('First Test Task');
-                expect(tasks[1].title).toBe('Second Test Task');
+            it('should return all tasks for a valid project member with pagination metadata', async () => {
+                const result = await getTasks(testUserId, testProjectId);
+                expect(result.data.length).toBe(2);
+                expect(result.pagination.total).toBe(2);
+                expect(result.pagination.page).toBe(1);
+                expect(result.pagination.totalPages).toBe(1);
             });
 
             it('should reject if user is not a project member', async () => {
@@ -153,6 +154,67 @@ describe('Task Service', () => {
                 await expect(
                     getTasks(String(outsider.id), testProjectId)
                 ).rejects.toThrow('Access denied. You must be a project member to view tasks.');
+            });
+
+            it('should paginate results correctly', async () => {
+                // Request page 1 with limit of 1
+                const page1 = await getTasks(testUserId, testProjectId, {}, { page: 1, limit: 1 });
+                expect(page1.data.length).toBe(1);
+                expect(page1.pagination.total).toBe(2);
+                expect(page1.pagination.totalPages).toBe(2);
+                expect(page1.pagination.page).toBe(1);
+
+                // Request page 2 with limit of 1
+                const page2 = await getTasks(testUserId, testProjectId, {}, { page: 2, limit: 1 });
+                expect(page2.data.length).toBe(1);
+                expect(page2.pagination.page).toBe(2);
+
+                // The two pages should have different tasks
+                expect(page1.data[0].id).not.toBe(page2.data[0].id);
+            });
+
+            it('should filter tasks by status', async () => {
+                // Update one task to "Done"
+                await TaskModel.update(testTaskId1, { status: 'Done' });
+
+                const result = await getTasks(testUserId, testProjectId, { status: 'Done' });
+                expect(result.data.length).toBe(1);
+                expect(result.data[0].status).toBe('Done');
+                expect(result.pagination.total).toBe(1);
+            });
+
+            it('should filter tasks by priority', async () => {
+                const result = await getTasks(testUserId, testProjectId, { priority: 'High' });
+                expect(result.data.length).toBe(1);
+                expect(result.data[0].priority).toBe('High');
+                expect(result.pagination.total).toBe(1);
+            });
+
+            it('should search tasks by title', async () => {
+                const result = await getTasks(testUserId, testProjectId, { search: 'First' });
+                expect(result.data.length).toBe(1);
+                expect(result.data[0].title).toContain('First');
+                expect(result.pagination.total).toBe(1);
+            });
+
+            it('should return empty data and zero total when no tasks match', async () => {
+                const result = await getTasks(testUserId, testProjectId, { search: 'nonexistent' });
+                expect(result.data.length).toBe(0);
+                expect(result.pagination.total).toBe(0);
+                expect(result.pagination.totalPages).toBe(0);
+            });
+
+            it('should count correctly with combined filters', async () => {
+                // Create additional tasks for a richer dataset
+                await TaskModel.create({ projectId: Number(testProjectId), title: 'Urgent Bug Fix', priority: 'High', status: 'In Progress' });
+                await TaskModel.create({ projectId: Number(testProjectId), title: 'Urgent Feature', priority: 'High', status: 'Todo' });
+                await TaskModel.create({ projectId: Number(testProjectId), title: 'Low Priority Cleanup', priority: 'Low', status: 'Todo' });
+
+                // Filter: High priority + search "Urgent"
+                const result = await getTasks(testUserId, testProjectId, { priority: 'High', search: 'Urgent' });
+                expect(result.data.length).toBe(2);
+                expect(result.pagination.total).toBe(2);
+                expect(result.pagination.totalPages).toBe(1);
             });
         });
 

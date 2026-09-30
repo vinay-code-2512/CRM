@@ -122,6 +122,10 @@ The design system will define reusable components such as:
 * Alert
 * Empty state
 * Loading state
+* Search Bar
+* Filter Dropdown
+* Comment Thread
+* Activity Feed
 
 ---
 

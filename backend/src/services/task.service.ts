@@ -63,7 +63,16 @@ export const createTask = async (
 // ==========================================
 // 2. GET ALL TASKS FOR A PROJECT
 // ==========================================
-export const getTasks = async (requesterId: string, projectId: string) => {
+export const getTasks = async (
+  requesterId: string,
+  projectId: string,
+  filters: {
+    status?: string; priority?: string; assigneeId?: number;
+    search?: string } = {},
+  pagination: { page: number; limit: number } = { page: 1, limit: 20 }
+
+) => {
+
   // 1. Verify project exists
   const project = await ProjectModel.findById(Number(projectId));
   if (!project) {
@@ -77,16 +86,48 @@ export const getTasks = async (requesterId: string, projectId: string) => {
     project.id,
     Number(requesterId)
   );
+
   if (!membership) {
     const error: any = new Error('Access denied. You must be a project member to view tasks.');
     error.statusCode = 403;
     throw error;
   }
 
-  // 3. Fetch all tasks
-  const tasks = await TaskModel.findByProjectId(project.id);
-  return tasks;
+
+ 
+  // 3. Calculate the offset from the page number
+  // Page 1 = skip 0, Page 2 = skip 20, Page 3 = skip 40, etc.
+  const offset = (pagination.page - 1) * pagination.limit;
+
+  // 4. Run TWO database operations in parallel:
+  //    - Fetch the filtered & paginated page of tasks
+  //    - Count the total matching rows via SQL COUNT(*) (no rows loaded into memory)
+  // Promise.all() is a built-in JS func that waits for multiple promises
+  // [tasks,total]->The results from Promise.all() are returned in the same order as the promises.
+  
+  const [tasks, total] = await Promise.all([
+    TaskModel.searchAndFilter(  //give tasks for requested page
+      project.id,
+      filters,
+      { limit: pagination.limit, offset }
+    ),
+    // How many tasks match these filters in total?
+    TaskModel.countFiltered(project.id, filters),
+  ]);
+
+  // 5. Return data + pagination metadata so the frontend can build page controls
+  return {
+    data: tasks,
+    pagination: {
+      page: pagination.page,
+      limit: pagination.limit,
+      total,
+      totalPages: Math.ceil(total / pagination.limit),
+    },
+  };
 };
+
+
 
 // ==========================================
 // 3. GET A SINGLE TASK BY ID
@@ -112,6 +153,7 @@ export const getTaskById = async (requesterId: string, projectId: string, taskId
     Number(projectId),
     Number(requesterId)
   );
+
   if (!membership) {
     const error: any = new Error('Access denied. You must be a project member to view tasks.');
     error.statusCode = 403;
@@ -171,7 +213,7 @@ export const updateTask = async (
       Number(projectId),
       Number(updateData.assigneeId)
     );
-    
+
     if (!assigneeMembership) {
       const error: any = new Error('Cannot assign task: Target user is not a member of this project.');
       error.statusCode = 400; // Bad Request, because they gave us an invalid assignee
@@ -244,7 +286,7 @@ export const deleteTask = async (requesterId: string, projectId: string, taskId:
     Number(projectId),
     Number(requesterId)
   );
-  
+
   if (!membership) {
     const error: any = new Error('Access denied. You must be a project member to delete tasks.');
     error.statusCode = 403;

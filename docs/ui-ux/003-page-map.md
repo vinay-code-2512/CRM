@@ -24,8 +24,8 @@
 
 /projects
 /projects/:projectId
-
 /projects/:projectId/board
+/projects/:projectId/activity
 
 /tasks
 /tasks/:taskId

@@ -55,7 +55,7 @@ This document describes the initial wireframe structure before high-fidelity UI 
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
-│ Project Name                              [+ Task]       │
+│ Project Name         [Search...] [Filter] [+ Task]       │
 ├──────────────┬──────────────┬──────────────┬─────────────┤
 │ Todo         │ In Progress  │ Review       │ Done        │
 ├──────────────┼──────────────┼──────────────┼─────────────┤
