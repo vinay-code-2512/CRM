@@ -336,6 +336,40 @@
 
 ---
 
+### Get Project Activity
+
+- **Method:** `GET /workspaces/:workspaceId/projects/:projectId/activity`
+- **Auth Required:** Yes (Project Member)
+- **Query Parameters:**
+  - `page` (optional, default: 1)
+  - `limit` (optional, default: 20)
+- **Success (200 OK):**
+  ```json
+  {
+    "data": [
+      {
+        "id": 1,
+        "workspaceId": 123,
+        "projectId": 456,
+        "actorId": 789,
+        "action": "TASK_CREATED",
+        "targetEntity": "Task",
+        "targetId": 10,
+        "metadata": { "title": "New Task" },
+        "createdAt": "..."
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 50,
+      "totalPages": 3
+    }
+  }
+  ```
+
+---
+
 ## 6. Project Membership
 
 ### List Project Members

@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAuth } from '../middleware/auth.middleware';
 import { validateBody } from '../middleware/validation.middleware';
 import { createProjectController, getProjectsController, updateProjectController, addProjectMemberController, deleteProjectController } from '../controllers/project.controller';
+import { getProjectActivityController } from '../controllers/activity.controller';
 
 const router = express.Router({ mergeParams: true });
 
@@ -19,6 +20,9 @@ router.post('/:projectId/members', requireAuth, validateBody(['userId']), addPro
 
 // DELETE /api/v1/workspaces/:id/projects/:projectId — Delete a project (Owner/Admin only)
 router.delete('/:projectId', requireAuth, deleteProjectController);
+
+// GET /api/v1/workspaces/:id/projects/:projectId/activity — List all activity in a project
+router.get('/:projectId/activity', requireAuth, getProjectActivityController);
 
 export default router; 
 
