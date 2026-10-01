@@ -1,6 +1,8 @@
 import { TaskModel } from '../models/TaskPrisma';
 import { ProjectModel } from '../models/ProjectPrisma';
 import { ProjectMemberModel } from '../models/ProjectMemberPrisma';
+import { logActivity } from './activity.service';
+
 
 // ==========================================
 // 1. CREATE TASK
@@ -54,6 +56,17 @@ export const createTask = async (
     labels: data.labels || null,
     dueDate: data.dueDate ? (globalThis as any).Temporal.Instant.from(data.dueDate) : null,
 
+  });
+
+  // Log that this task was created
+    logActivity({
+    workspaceId: project.workspaceId,
+    projectId: project.id,
+    actorId: Number(requesterId),
+    action: 'TASK_CREATED',
+    targetEntity: 'Task',
+    targetId: task.id,
+    metadata: { title: task.title }
   });
 
   return task;
@@ -258,6 +271,23 @@ export const updateTask = async (
 
   // 5. Update the task in the database
   const updatedTask = await TaskModel.update(Number(taskId), formattedData);
+
+  // Log that this task was updated
+  logActivity({
+    // workspaceId is an optional field in our ActivityLogCreateInput.
+    projectId: task.projectId, 
+    actorId: Number(requesterId),
+    action: 'TASK_UPDATED',
+    targetEntity: 'Task',
+    targetId: task.id,
+    metadata: { 
+      // Record which fields were changed
+      updatedFields: Object.keys(updateData),
+      newStatus: updateData.status,
+      newAssignee: updateData.assigneeId
+    }
+  });
+
   return updatedTask;
 };
 

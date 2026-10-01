@@ -63,12 +63,22 @@ SyncForge is designed for:
 Node.js
 Express.js
 TypeScript
-MongoDB
-Mongoose
+PostgreSQL
+Prisma (v8)
 REST API
 JWT
 bcrypt
 ```
+
+### Database Updates (Prisma 8)
+When you modify the database schema (`backend/prisma/contract.prisma`), run the following commands in the `backend/` directory:
+
+1. `npx prisma contract emit` 
+   *(Note: this is the correct Prisma 8 command to compile. It generates the new `contract.json` based on your model).*
+2. `npx prisma db update --dry-run`
+   *(This connects to the database, diffs the schema, and predicts the operations to ensure there are no destructive warnings).*
+3. `npx prisma db update --yes`
+   *(This applies the schema to the live database in the background without asking for interactive prompts).*
 
 ## Frontend
 
@@ -126,11 +136,11 @@ High-level architecture:
                     └─────────┬─────────┘
                               │
                     ┌─────────▼─────────┐
-                    │     Mongoose      │
+                    │      Prisma       │
                     └─────────┬─────────┘
                               │
                     ┌─────────▼─────────┐
-                    │     MongoDB       │
+                    │    PostgreSQL     │
                     └───────────────────┘
 ```
 
@@ -311,7 +321,7 @@ Developers should have:
 * Node.js
 * npm
 * Git
-* MongoDB or MongoDB Atlas
+* PostgreSQL
 * API testing tool
 * Code editor
 
@@ -324,8 +334,8 @@ Environment-specific configuration must not be committed to Git.
 Example:
 
 ```text
-PORT=
-MONGODB_URI=
+PORT=3000
+DATABASE_URL=
 JWT_SECRET=
 JWT_EXPIRES_IN=
 CLIENT_URL=
@@ -342,7 +352,7 @@ SyncForge exposes REST APIs.
 Base development URL:
 
 ```text
-http://localhost:5000/api/v1
+http://localhost:3000/api/v1
 ```
 
 API documentation is maintained in:
@@ -390,7 +400,7 @@ Security requirements include:
 Current stage:
 
 ```text
-Planning & Architecture
+Backend Development - Sprint 6 (Completed Epic 7)
 ```
 
 Completed planning:

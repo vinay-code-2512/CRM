@@ -1,6 +1,7 @@
 import { CommentModel } from '../models/CommentPrisma';
 import { TaskModel } from '../models/TaskPrisma';
 import { ProjectMemberModel } from '../models/ProjectMemberPrisma';
+import { logActivity } from './activity.service';
 
 // ==========================================
 // HELPER: Verify the user has access to the task's project
@@ -29,14 +30,29 @@ const verifyTaskAccess = async (taskId: number, requesterId: number) => {
 // 1. CREATE COMMENT
 // ==========================================
 export const createComment = async (requesterId: string, taskId: string, content: string) => {
-  // Verify the user can access this task
-  await verifyTaskAccess(Number(taskId), Number(requesterId));
+  // Capture the returned task object so we can use its projectId
+  const task = await verifyTaskAccess(Number(taskId), Number(requesterId));
 
   // Create the comment
   const comment = await CommentModel.create({
     taskId: Number(taskId),
     userId: Number(requesterId),
     content,
+  });
+
+  // Log that a comment was created
+  logActivity({
+    // Omit workspaceId because it requires an extra DB query
+    projectId: task.projectId, 
+    actorId: Number(requesterId),
+    action: 'COMMENT_CREATED',
+    targetEntity: 'Comment',
+    targetId: comment.id,
+    metadata: { 
+      taskId: task.id,
+      // Provide a short preview of the comment for the frontend UI
+      snippet: content.substring(0, 50) 
+    }
   });
 
   return comment;

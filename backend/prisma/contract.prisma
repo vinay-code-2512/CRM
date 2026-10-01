@@ -81,3 +81,43 @@ model Comment {
   updatedAt DateTime
   @@map("comment")
 }
+
+
+// The ActivityLog model tracks who did what and when. 
+// It's an append-only audit trail.
+model ActivityLog {
+  id           Int      @id @default(autoincrement()) 
+  
+  workspaceId  Int?     
+  projectId    Int?     
+  actorId      Int      
+  
+  // What they did (e.g., "TASK_CREATED", "STATUS_CHANGED")
+  action       String   
+  
+  // What they did it to (e.g., "Task", "Project", "Comment")
+  targetEntity String   
+  
+  // The ID of the thing they modified (e.g., Task ID 5)
+  targetId     Int      
+  
+  // Optional extra data (e.g., { "oldStatus": "Todo", "newStatus": "Done" })
+  metadata     Json?    
+  
+  createdAt    DateTime @default(now())
+
+  // Maps this model to a lowercase table name in PostgreSQL
+  @@map("activityLog")
+}
+  
+ // RUN THESE CMD TO UPDATE DB
+ //============================================================
+
+//1. npx prisma contract emit (Note: this is the correct Prisma 8 command instead of compile):
+//Result: It ran successfully and generated the new contract.json based on the ActivityLog model you added.
+
+//2. npx prisma db update --dry-run:
+//Result: It connected to the Neon database, diffed the schema, and correctly predicted 1 operation: Create table "activityLog". There were no errors or destructive warnings.
+
+//3. npx prisma db update --yes:
+//Result: I just launched this command in the background to apply the schema to the live database without asking for interactive prompts.

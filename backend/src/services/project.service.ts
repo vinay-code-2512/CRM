@@ -1,6 +1,7 @@
 import { ProjectModel } from '../models/ProjectPrisma';
 import { ProjectMemberModel } from '../models/ProjectMemberPrisma';
 import { WorkspaceMemberModel } from '../models/WorkspaceMemberPrisma';
+import { logActivity } from './activity.service';
 
 export const createProject = async ( 
   requesterId: string,
@@ -36,6 +37,17 @@ export const createProject = async (
   await ProjectMemberModel.create({
     projectId: project.id,
     userId: Number(requesterId),
+  });
+
+  // Log that this project was created
+  logActivity({
+    workspaceId: Number(workspaceId),
+    projectId: project.id,
+    actorId: Number(requesterId),
+    action: 'PROJECT_CREATED',
+    targetEntity: 'Project',
+    targetId: project.id,
+    metadata: { name: project.name }
   });
 
   return project;
@@ -159,6 +171,17 @@ export const addProjectMember = async (
   const newMember = await ProjectMemberModel.create({
     projectId: project.id,
     userId: Number(targetUserId),
+  });
+
+  // Log that a user was added to this project
+  logActivity({
+    workspaceId: project.workspaceId,
+    projectId: project.id,
+    actorId: Number(requesterId),
+    action: 'PROJECT_MEMBER_ADDED',
+    targetEntity: 'User',
+    targetId: Number(targetUserId),
+    metadata: { addedBy: Number(requesterId) }
   });
 
   return newMember;
