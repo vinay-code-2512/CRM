@@ -198,12 +198,12 @@ All sprint work is executed using feature branches. Branch names map directly to
 
 **Backlog Items Included:**
 
-- US-5.1: Retrieve tasks grouped by status (Kanban board)
-- US-5.2: Board task movement
-- US-6.1: Create Comment
-- US-6.2: Edit/Delete own comment
-- US-6.3: Admin moderate comments
-- US-7.1: Comment activity recording
+- [x] US-5.1: Retrieve tasks grouped by status (Kanban board)
+- [x] US-5.2: Board task movement
+- [x] US-6.1: Create Comment
+- [x] US-6.2: Edit/Delete own comment
+- [x] US-6.3: Admin moderate comments
+- [x] US-7.1: Comment activity recording
 
 **Dependencies:** Sprint 4 (Task Management).
 
@@ -220,10 +220,10 @@ All sprint work is executed using feature branches. Branch names map directly to
 **Backlog Items Included:**
 
 - [x] US-7.1: Activity/audit trail recording *(Note: Sprint 6 focuses on activity viewing/formalization, search/filtering/pagination. Recording is handled incrementally in Sprints 2–5).*
-- [x] US-7.2: Activity viewing
-- [x] US-8.1: Search
-- [x] US-8.2: Filtering
-- [x] US-8.3: Pagination
+- [x] US-7.2: Activity viewing *(Backend Complete, Frontend Pending)*
+- [x] US-8.1: Search *(Backend + Frontend Complete)*
+- [x] US-8.2: Filtering *(Backend + Frontend Complete)*
+- [x] US-8.3: Pagination *(Backend + Frontend Complete)*
 
 **Dependencies:** Sprints 4 and 5.
 
