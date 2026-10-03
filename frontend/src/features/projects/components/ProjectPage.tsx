@@ -4,6 +4,7 @@ import { type Task, useTasks } from '../../tasks/api/tasks';
 import { CreateTaskModal } from '../../tasks/components/CreateTaskModal';
 import { TaskDetailPanel } from '../../tasks/components/TaskDetailPanel';
 import { KanbanBoard } from '../../tasks/components/KanbanBoard';
+import { ActivityFeed } from './ActivityFeed';
 
 // Helper: maps priority to a colored badge
 const priorityColor = (priority: string) => {
@@ -37,8 +38,8 @@ export const ProjectPage: React.FC = () => {
     // 4. State for the Task Detail side panel (null = closed)
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-    // 5. Toggle between 'table' and 'board' view
-    const [viewMode, setViewMode] = useState<'table' | 'board'>('table');
+    // 5. Toggle between 'table', 'board', and 'activity' view
+    const [viewMode, setViewMode] = useState<'table' | 'board' | 'activity'>('table');
 
     // 6. State for Search, Filters, and Pagination
     const [searchQuery, setSearchQuery] = useState('');
@@ -111,6 +112,16 @@ export const ProjectPage: React.FC = () => {
                         >
                             Board
                         </button>
+                        <button
+                            onClick={() => setViewMode('activity')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                viewMode === 'activity' 
+                                    ? 'bg-white text-slate-900 shadow-sm' 
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            Activity
+                        </button>
                     </div>
 
                     {/* Button opens the Create Task modal */}
@@ -125,9 +136,12 @@ export const ProjectPage: React.FC = () => {
 
             {/* Main Content */}
             <main className="flex-1 overflow-auto p-8">
-
-                {/* Search & Filter Bar */}
-                <div className="mb-6 flex flex-wrap gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                {viewMode === 'activity' ? (
+                    <ActivityFeed workspaceId={workspaceId!} projectId={projectId!} />
+                ) : (
+                    <>
+                        {/* Search & Filter Bar */}
+                        <div className="mb-6 flex flex-wrap gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                     {/* Search Input */}
                     <div className="flex-1 min-w-[200px]">
                         <input
@@ -272,6 +286,8 @@ export const ProjectPage: React.FC = () => {
                             Next
                         </button>
                     </div>
+                )}
+                </>
                 )}
             </main>
         </div>
