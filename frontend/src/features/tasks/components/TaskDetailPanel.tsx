@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../../store/store';
 import { type Task, useUpdateTask } from '../api/tasks';
+import { useComments, useCreateComment, useUpdateComment, useDeleteComment } from '../api/comments';
 import axios from 'axios';
+
 
 interface TaskDetailPanelProps {
     task: Task | null;         // The task to display (null = panel is closed)
@@ -22,6 +26,56 @@ export const TaskDetailPanel: React.FC<TaskDetailPanelProps> = ({ task, onClose,
 
     // Our update mutation
     const { mutate: updateTask, isPending } = useUpdateTask(projectId);
+
+    // Fetch comments for the selected task
+    const { data: comments, isLoading: commentsLoading } = useComments(task ? String(task.id) : '');
+
+    // Create comment mutation and state
+    const [newComment, setNewComment] = useState('');
+    const { mutate: createComment, isPending: isCreatingComment } = useCreateComment(task ? String(task.id) : '');
+
+    const handleAddComment = () => {
+        if (!newComment.trim() || !task) return;
+        createComment(
+            { taskId: String(task.id), content: newComment },
+            {
+                onSuccess: () => setNewComment('') // Clear input immediately on success
+            }
+        );
+    };
+
+    // Get the current logged-in user
+    const currentUser = useSelector((state: RootState) => state.auth.user);
+
+    // Edit & Delete hooks / state
+    const { mutate: updateComment, isPending: isUpdatingComment } = useUpdateComment(task ? String(task.id) : '');
+    const { mutate: deleteComment, isPending: isDeletingComment } = useDeleteComment(task ? String(task.id) : '');
+    
+    const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+    const [editContent, setEditContent] = useState('');
+
+    const handleDeleteComment = (commentId: number) => {
+        if (!task || !window.confirm("Are you sure you want to delete this comment?")) return;
+        deleteComment({ taskId: String(task.id), commentId: String(commentId) });
+    };
+
+    const handleEditStart = (comment: any) => {
+        setEditingCommentId(comment.id);
+        setEditContent(comment.content);
+    };
+
+    const handleSaveEdit = () => {
+        if (!task || !editingCommentId || !editContent.trim()) return;
+        updateComment(
+            { taskId: String(task.id), commentId: String(editingCommentId), content: editContent },
+            {
+                onSuccess: () => {
+                    setEditingCommentId(null);
+                    setEditContent('');
+                }
+            }
+        );
+    };
 
     // Whenever a new task is selected, populate the form fields
     useEffect(() => {
@@ -171,6 +225,101 @@ export const TaskDetailPanel: React.FC<TaskDetailPanelProps> = ({ task, onClose,
                     <div className="pt-4 border-t border-slate-200 text-xs text-slate-400 space-y-1">
                         <p>Created: {new Date(task.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                         <p>Updated: {new Date(task.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                    </div>
+
+                    {/* Comments Section (Read-Only for now) */}
+                    <div className="pt-6 border-t border-slate-200">
+                        <h4 className="text-sm font-medium text-slate-700 mb-4">Comments</h4>
+                        
+                        {/* Add Comment Form */}
+                        <div className="mb-6 bg-slate-50 p-3 rounded-lg border border-slate-200 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                            <textarea
+                                rows={2}
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                                placeholder="Write a comment..."
+                                className="w-full bg-transparent text-sm text-slate-900 focus:outline-none resize-none placeholder-slate-400"
+                            />
+                            <div className="flex justify-end mt-2">
+                                <button
+                                    onClick={handleAddComment}
+                                    disabled={!newComment.trim() || isCreatingComment}
+                                    className={`px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20 ${(!newComment.trim() || isCreatingComment) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    {isCreatingComment ? 'Posting...' : 'Post Comment'}
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {commentsLoading ? (
+                            <div className="text-sm text-slate-500 animate-pulse">Loading comments...</div>
+                        ) : !comments || comments.length === 0 ? (
+                            <div className="text-sm text-slate-500 italic">No comments yet.</div>
+                        ) : (
+                            <div className="space-y-4">
+                                {comments.map((comment) => (
+                                    <div key={comment.id} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className="font-semibold text-sm text-slate-800">
+                                                {comment.user?.name || 'Unknown User'}
+                                            </span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-xs text-slate-400">
+                                                    {new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                                {currentUser && Number(currentUser._id) === comment.userId && (
+                                                    <div className="flex gap-2 text-xs">
+                                                        <button 
+                                                            onClick={() => handleEditStart(comment)}
+                                                            className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                                                            disabled={isDeletingComment || isUpdatingComment}
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDeleteComment(comment.id)}
+                                                            className="text-red-500 hover:text-red-700 transition-colors"
+                                                            disabled={isDeletingComment || isUpdatingComment}
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {editingCommentId === comment.id ? (
+                                            <div className="mt-2">
+                                                <textarea
+                                                    rows={2}
+                                                    value={editContent}
+                                                    onChange={(e) => setEditContent(e.target.value)}
+                                                    className="w-full bg-white border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                                                />
+                                                <div className="flex justify-end gap-2 mt-2">
+                                                    <button
+                                                        onClick={() => setEditingCommentId(null)}
+                                                        className="px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200 rounded transition-colors"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        onClick={handleSaveEdit}
+                                                        disabled={!editContent.trim() || isUpdatingComment}
+                                                        className={`px-3 py-1 text-xs font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 transition-colors ${(!editContent.trim() || isUpdatingComment) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                    >
+                                                        {isUpdatingComment ? 'Saving...' : 'Save'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-slate-700 break-words whitespace-pre-wrap">
+                                                {comment.content}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 

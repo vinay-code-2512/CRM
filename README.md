@@ -400,7 +400,7 @@ Security requirements include:
 Current stage:
 
 ```text
-Backend Development - Sprint 6 (Completed Epic 7)
+Frontend Integration - Sprint 6 (Epic 7 & 8)
 ```
 
 Completed planning:
@@ -422,7 +422,7 @@ Completed planning:
 Next stage:
 
 ```text
-Backend Initialization
+Frontend Integration - Kanban & Comments (Epic 5 & 6)
 ```
 
 ---
