@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { type Task, useTasks } from '../../tasks/api/tasks';
 import { CreateTaskModal } from '../../tasks/components/CreateTaskModal';
@@ -31,9 +31,6 @@ export const ProjectPage: React.FC = () => {
     // 1. Grab the IDs from the URL
     const { workspaceId, projectId } = useParams<{ workspaceId: string; projectId: string }>();
 
-    // 2. Fetch all tasks for this project
-    const { data: tasks, isLoading } = useTasks(projectId!);
-
     // 3. State for the Create Task Modal
     const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
 
@@ -43,6 +40,27 @@ export const ProjectPage: React.FC = () => {
     // 5. Toggle between 'table' and 'board' view
     const [viewMode, setViewMode] = useState<'table' | 'board'>('table');
 
+    // 6. State for Search, Filters, and Pagination
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [priorityFilter, setPriorityFilter] = useState('');
+    const [page, setPage] = useState(1);
+    
+    // 7. Reset page to 1 whenever a filter changes
+    useEffect(() => {setPage(1)}, [searchQuery, statusFilter, priorityFilter]);
+
+    // 2. Fetch all tasks for this project (Now with filters!)
+    const { data: tasksResponse, isLoading } = useTasks(projectId!, {
+        page,
+        limit: 20,
+        search: searchQuery || undefined,
+        status: statusFilter || undefined,
+        priority: priorityFilter || undefined
+    });
+
+    // Helper variable to get the actual array of tasks from the response
+    const tasksArray = tasksResponse?.data || [];
+    
     return (
         <>
         <CreateTaskModal
@@ -108,6 +126,46 @@ export const ProjectPage: React.FC = () => {
             {/* Main Content */}
             <main className="flex-1 overflow-auto p-8">
 
+                {/* Search & Filter Bar */}
+                <div className="mb-6 flex flex-wrap gap-4 items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    {/* Search Input */}
+                    <div className="flex-1 min-w-[200px]">
+                        <input
+                            type="text"
+                            placeholder="Search tasks..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        />
+                    </div>
+
+                    {/* Status Dropdown */}
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                    >
+                        <option value="">All Statuses</option>
+                        <option value="Todo">Todo</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Review">Review</option>
+                        <option value="Done">Done</option>
+                    </select>
+
+                    {/* Priority Dropdown */}
+                    <select
+                        value={priorityFilter}
+                        onChange={(e) => setPriorityFilter(e.target.value)}
+                        className="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                    >
+                        <option value="">All Priorities</option>
+                        <option value="Urgent">Urgent</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+
                 {/* Loading Spinner */}
                 {isLoading && (
                     <div className="flex items-center justify-center h-64">
@@ -116,7 +174,7 @@ export const ProjectPage: React.FC = () => {
                 )}
 
                 {/* Empty State: No tasks yet */}
-                {!isLoading && tasks && tasks.length === 0 && (
+                {!isLoading && tasksArray.length === 0 && (
                     <div className="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center">
                         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -131,7 +189,7 @@ export const ProjectPage: React.FC = () => {
                 )}
 
                 {/* Task Table — only shown in table mode */}
-                {!isLoading && tasks && tasks.length > 0 && viewMode === 'table' && (
+                {!isLoading && tasksArray.length > 0 && viewMode === 'table' && (
                     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                         <table className="w-full">
                             <thead>
@@ -143,7 +201,7 @@ export const ProjectPage: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
-                                {tasks.map(task => (
+                                {tasksArray.map(task => (
                                     <tr 
                                         key={task.id} 
                                         onClick={() => setSelectedTask(task)}
@@ -185,12 +243,35 @@ export const ProjectPage: React.FC = () => {
                 )}
 
                 {/* Kanban Board — only shown in board mode */}
-                {!isLoading && tasks && tasks.length > 0 && viewMode === 'board' && (
+                {!isLoading && tasksArray.length > 0 && viewMode === 'board' && (
                     <KanbanBoard
-                        tasks={tasks}
+                        tasks={tasksArray}
                         projectId={projectId!}
                         onTaskClick={(task) => setSelectedTask(task)}
                     />
+                )}
+
+                {/* Pagination Controls */}
+                {!isLoading && tasksResponse && tasksResponse.pagination.totalPages > 1 && (
+                    <div className="mt-8 flex items-center justify-between bg-white px-6 py-3 border border-slate-200 rounded-xl shadow-sm">
+                        <button
+                            disabled={page === 1}
+                            onClick={() => setPage(p => p - 1)}
+                            className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Previous
+                        </button>
+                        <span className="text-sm font-medium text-slate-500">
+                            Page {tasksResponse.pagination.page} of {tasksResponse.pagination.totalPages}
+                        </span>
+                        <button
+                            disabled={page === tasksResponse.pagination.totalPages}
+                            onClick={() => setPage(p => p + 1)}
+                            className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Next
+                        </button>
+                    </div>
                 )}
             </main>
         </div>

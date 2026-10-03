@@ -25,20 +25,46 @@ export interface CreateTaskData {
     dueDate?: string;
 }
 
-// Fetch all tasks for a specific project
-export const fetchTasks = async (projectId: string): Promise<Task[]> => {
-    const response = await api.get<Task[]>(`/projects/${projectId}/tasks`);
+// Parameters we can send to filter or paginate the tasks
+export interface TaskFilters {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    priority?: string;
+    assigneeId?: number;
+}
+
+// The exact shape of the paginated response from the backend
+export interface PaginatedTaskResponse {
+    data: Task[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
+}
+
+// Fetch tasks for a project, now supporting search, filters, and pagination
+export const fetchTasks = async (projectId: string, filters: TaskFilters = {}): Promise<PaginatedTaskResponse> => {
+    // Axios will automatically append the filters as query strings (e.g., ?page=1&status=Done)
+    const response = await api.get<PaginatedTaskResponse>(`/projects/${projectId}/tasks`, {
+        params: filters
+    });
     return response.data;
 };
 
-// React Query hook — caches tasks per project
-export const useTasks = (projectId: string) => {
+// React Query hook — automatically refetches when the projectId or filters change
+export const useTasks = (projectId: string, filters: TaskFilters = {}) => {
     return useQuery({
-        queryKey: ['tasks', projectId],
-        queryFn: () => fetchTasks(projectId),
-        enabled: !!projectId,
+        // Adding filters here ensures different searches are cached separately
+        queryKey: ['tasks', projectId, filters],       //WHAT data?
+        queryFn: () => fetchTasks(projectId, filters), //HOW to get it?
+        enabled: !!projectId,                          // WHEN/WHETHER to run?
     });
 };
+
 
 // Create a new task inside a project
 export const createTask = async (data: CreateTaskData) => {
