@@ -21,15 +21,16 @@ describe('Error Middleware', () => {
   });
 
   describe('errorHandler', () => {
-    it('should handle generic errors and return 500 status', () => {
-      const error = new Error('Test generic error');
+    it('should handle generic errors and return 500 status without leaking details', () => {
+      // Create a dangerous error that simulates a raw database crash
+      const error = new Error('Database connection failed: user credentials rejected');
       
       errorHandler(error as any, mockRequest as Request, mockResponse as Response, nextFunction);
       
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: 'Error',
-        message: 'Test generic error'
+        message: 'Internal Server Error' // Ensure the raw error string was obscured!
       });
     });
 

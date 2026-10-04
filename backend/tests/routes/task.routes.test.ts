@@ -137,6 +137,96 @@ describe('Task Routes (Integration)', () => {
 
             expect(res.status).toBe(401);
         });
+
+        it('should filter tasks by status', async () => {
+            // Create a 'Todo' task
+            await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task A' }); // defaults to Todo
+            
+            // Create an 'In Progress' task
+            const res2 = await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task B' });
+            await request(app)
+                .patch(`/api/v1/projects/${testProjectId}/tasks/${res2.body.id}`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ status: 'In Progress' });
+
+            const res = await request(app)
+                .get(`/api/v1/projects/${testProjectId}/tasks?status=In Progress`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.data.length).toBe(1);
+            expect(res.body.data[0].title).toBe('Task B');
+        });
+
+        it('should filter tasks by assigneeId and priority', async () => {
+            // Task with High priority and assigned to testUserId
+            const res1 = await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task C', priority: 'High' });
+            await request(app)
+                .patch(`/api/v1/projects/${testProjectId}/tasks/${res1.body.id}`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ assigneeId: Number(testUserId) });
+            
+            // Task with Low priority
+            await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task D', priority: 'Low' });
+
+            const res = await request(app)
+                .get(`/api/v1/projects/${testProjectId}/tasks?priority=High&assigneeId=${testUserId}`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.data.length).toBe(1);
+            expect(res.body.data[0].title).toBe('Task C');
+        });
+
+        it('should search tasks by title keyword', async () => {
+            await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Unique keyword here' });
+
+            await request(app)
+                .post(`/api/v1/projects/${testProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Normal title' });
+
+            const res = await request(app)
+                .get(`/api/v1/projects/${testProjectId}/tasks?search=Unique`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.data.length).toBe(1);
+            expect(res.body.data[0].title).toBe('Unique keyword here');
+        });
+
+        it('should correctly paginate tasks', async () => {
+            // Create 3 tasks
+            await request(app).post(`/api/v1/projects/${testProjectId}/tasks`).set('Authorization', `Bearer ${authToken}`).send({ title: 'T1' });
+            await request(app).post(`/api/v1/projects/${testProjectId}/tasks`).set('Authorization', `Bearer ${authToken}`).send({ title: 'T2' });
+            await request(app).post(`/api/v1/projects/${testProjectId}/tasks`).set('Authorization', `Bearer ${authToken}`).send({ title: 'T3' });
+
+            // Fetch page 2, limit 1
+            const res = await request(app)
+                .get(`/api/v1/projects/${testProjectId}/tasks?page=2&limit=1`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(res.body.data.length).toBe(1);
+            expect(res.body.pagination.page).toBe(2);
+            expect(res.body.pagination.limit).toBe(1);
+            expect(res.body.pagination.total).toBe(3);
+        });
     });
 
     describe('GET /api/v1/projects/:projectId/tasks/:taskId', () => {
