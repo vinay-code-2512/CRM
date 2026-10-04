@@ -3,10 +3,13 @@ import api from '../../../lib/api';
 
 // 1. The exact shape of the response from the backend when registration succeeds
 // According to our API-Specification.md, it returns a message and a userId
+// Replace lines 6-9 with:
 export interface RegisterResponse {
-    message: string;
-    userId: string;
+    _id: string;
+    name: string;
+    email: string;
 }
+
 
 // 2. The exact shape of the data the frontend form needs to send to the backend
 export interface RegisterCredentials {

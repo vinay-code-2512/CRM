@@ -311,7 +311,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 ### Epics 11 & 12 (Tech Foundation & Quality)
 
 - [x] TECH-01 to TECH-07 -> Sprint 0
-- [ ] TECH-08 & TECH-09 -> Sprint 7
+- [x] TECH-08 & TECH-09 -> Sprint 7
 
 *(Note: US-9.1 Notifications is explicitly Future/Out-of-Scope for MVP).*
 
