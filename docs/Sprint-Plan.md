@@ -99,7 +99,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 - [x] US-2.2: Add registered members
 - [x] US-2.3: Remove members
 - [x] US-2.4: Workspace deletion
-- [] US-7.1: Workspace activity recording
+- [x] US-7.1: Workspace activity recording
 - [x] US-10.1: Workspace roles/permissions
 
 *(Note: Roles are strictly limited to Workspace Owner, Admin, and Member.)*
@@ -122,7 +122,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 - [x] US-3.2: Project updates
 - [x] US-3.3: Project membership (Add member)
 - [x] US-3.4: Project archive/delete
-- US-7.1: Project activity recording
+- [x] US-7.1: Project activity recording
 
 *(Note: No new project-specific roles are introduced.)*
 
@@ -147,7 +147,7 @@ All sprint work is executed using feature branches. Branch names map directly to
 - [x] US-4.5: Update task status
 - [x] US-4.6: Update task priority
 - [x] US-4.7: Delete task
-- US-7.1: Task activity recording
+- [x] US-7.1: Task activity recording
 
 **Dependencies:** Sprint 3 (Project Management).
 
@@ -219,11 +219,11 @@ All sprint work is executed using feature branches. Branch names map directly to
 
 **Backlog Items Included:**
 
-- [x] US-7.1: Activity/audit trail recording *(Note: Sprint 6 focuses on activity viewing/formalization, search/filtering/pagination. Recording is handled incrementally in Sprints 2–5).*
-- [x] US-7.2: Activity viewing *(Backend Complete, Frontend Pending)*
-- [x] US-8.1: Search *(Backend + Frontend Complete)*
-- [x] US-8.2: Filtering *(Backend + Frontend Complete)*
-- [x] US-8.3: Pagination *(Backend + Frontend Complete)*
+- [x] US-7.1: Activity/audit trail recording
+- [x] US-7.2: Activity viewing
+- [x] US-8.1: Search
+- [x] US-8.2: Filtering
+- [x] US-8.3: Pagination
 
 **Dependencies:** Sprints 4 and 5.
 
@@ -239,11 +239,11 @@ All sprint work is executed using feature branches. Branch names map directly to
 
 **Backlog Items Included:**
 
-- TECH-08: Feature-level test completion & Integration/API testing
-- TECH-09: OpenAPI/Swagger documentation completion
-- Security review
-- Error-handling review
-- Backend code quality review
+- [x] TECH-08: Feature-level test completion & Integration/API testing
+- [x] TECH-09: OpenAPI/Swagger documentation completion
+- [x] Security review
+- [x] Error-handling review
+- [x] Backend code quality review
 
 **Dependencies:** All previous sprints.
 

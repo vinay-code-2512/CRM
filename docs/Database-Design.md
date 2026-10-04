@@ -387,3 +387,22 @@ Caching & Queues: Introducing Redis or background processing only when actual pr
 Advanced Search: PostgreSQL full-text search or a dedicated search solution if simple task-title search becomes insufficient.
 
 End of Database Design Document
+### 6. Comment
+Stores user discussions on tasks.
+- **id** (Primary Key)
+- **content** (Text)
+- **taskId** (Foreign Key -> Task)
+- **userId** (Foreign Key -> User)
+- **createdAt**, **updatedAt**
+
+### 7. ActivityLog
+Stores audit trail events across the system.
+- **id** (Primary Key)
+- **workspaceId** (Foreign Key -> Workspace)
+- **projectId** (Foreign Key -> Project)
+- **actorId** (Foreign Key -> User)
+- **action** (String, e.g. 'TASK_CREATED')
+- **targetEntity** (String, e.g. 'Task')
+- **targetId** (Integer)
+- **metadata** (JSON, flexible extra data)
+- **createdAt**

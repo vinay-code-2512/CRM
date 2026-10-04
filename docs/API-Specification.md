@@ -557,6 +557,8 @@
 
 ## 9. Activity Logs
 
+*Note: Activity logs are tracking events automatically within the system. The `action` field is formatted as uppercase snake_case (e.g., `TASK_CREATED`, `STATUS_CHANGED`).*
+
 ### Get Workspace Activity
 
 - **Method:** `GET /workspaces/:workspaceId/activities`
