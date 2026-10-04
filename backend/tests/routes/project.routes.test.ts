@@ -221,4 +221,50 @@ describe('Project Routes (Integration)', () => {
         });
     });
 
+    describe('GET /api/v1/workspaces/:id/projects/:projectId/activity', () => {
+        let createdProjectId: string;
+
+        beforeEach(async () => {
+            const createRes = await request(app)
+                .post(`/api/v1/workspaces/${testWorkspaceId}/projects`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ name: 'Activity Test Project' });
+            createdProjectId = createRes.body.id;
+        });
+
+        it('should return 200 and a list of activity logs', async () => {
+            // Trigger an activity: Create a task in the project
+            await request(app)
+                .post(`/api/v1/projects/${createdProjectId}/tasks`)
+                .set('Authorization', `Bearer ${authToken}`)
+                .send({ title: 'Task to Trigger Activity' });
+
+            // Fetch activity
+            const res = await request(app)
+                .get(`/api/v1/workspaces/${testWorkspaceId}/projects/${createdProjectId}/activity`)
+                .set('Authorization', `Bearer ${authToken}`);
+
+            expect(res.status).toBe(200);
+            expect(Array.isArray(res.body.data)).toBe(true);
+            expect(res.body.data.length).toBeGreaterThan(0);
+            expect(res.body.data[0].action).toBe('TASK_CREATED');
+        });
+
+        it('should return 403 if not a project member', async () => {
+            // Create a different user
+            const outsider = await UserModel.create({
+                name: 'Outsider Activity',
+                email: `outsider-act-${Date.now()}@test.com`,
+                passwordHash: 'fake'
+            });
+            const outsiderToken = jwt.sign({ userId: String(outsider.id) }, process.env.JWT_SECRET || 'testsecret');
+
+            // Do not add them to the workspace/project
+            const res = await request(app)
+                .get(`/api/v1/workspaces/${testWorkspaceId}/projects/${createdProjectId}/activity`)
+                .set('Authorization', `Bearer ${outsiderToken}`);
+
+            expect(res.status).toBe(403);
+        });
+    });
 });

@@ -4,7 +4,10 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
   console.error('Error:', err);
   
   const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+  
+  // SECURITY: Do not expose raw error messages to the client for 500 Internal Server Errors
+  // We still log the real err.message to the console on line 4, but the client only sees a safe generic message.
+  const message = statusCode === 500 ? 'Internal Server Error' : err.message;
   
   // Map specific error types if needed later
   let errorType = 'ServerError';

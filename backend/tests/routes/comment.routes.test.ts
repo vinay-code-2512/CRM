@@ -96,4 +96,95 @@ describe('Comment Routes (Integration)', () => {
       expect(res.body[0].content).toBe('Hello');
     });
   });
+
+  describe('PATCH /api/v1/tasks/:taskId/comments/:commentId', () => {
+    let createdCommentId: string;
+
+    beforeEach(async () => {
+      // Create a comment authored by the test user
+      const res = await request(app)
+        .post(`/api/v1/tasks/${testTaskId}/comments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ content: 'Original comment' });
+      
+      createdCommentId = res.body.id;
+    });
+
+    it('should return 200 and update the comment if user is the author', async () => {
+      const res = await request(app)
+        .patch(`/api/v1/tasks/${testTaskId}/comments/${createdCommentId}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ content: 'Updated comment' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.content).toBe('Updated comment');
+    });
+
+    it('should return 403 if trying to edit someone elses comment', async () => {
+      // 1. Create a different user
+      const outsider = await UserModel.create({
+        name: 'Outsider',
+        email: `outsider-${Date.now()}@test.com`,
+        passwordHash: 'fake'
+      });
+      // 2. Add them to the project so they can at least view tasks
+      await ProjectMemberModel.create({ projectId: Number(testProjectId), userId: outsider.id });
+      
+      const outsiderToken = jwt.sign({ userId: String(outsider.id) }, process.env.JWT_SECRET || 'testsecret');
+
+      // 3. Outsider tries to edit our comment
+      const res = await request(app)
+        .patch(`/api/v1/tasks/${testTaskId}/comments/${createdCommentId}`)
+        .set('Authorization', `Bearer ${outsiderToken}`)
+        .send({ content: 'Hacked comment' });
+
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe('DELETE /api/v1/tasks/:taskId/comments/:commentId', () => {
+    let createdCommentId: string;
+
+    beforeEach(async () => {
+      const res = await request(app)
+        .post(`/api/v1/tasks/${testTaskId}/comments`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ content: 'Comment to delete' });
+      
+      createdCommentId = res.body.id;
+    });
+
+    it('should return 200 and delete the comment if user is the author', async () => {
+      const res = await request(app)
+        .delete(`/api/v1/tasks/${testTaskId}/comments/${createdCommentId}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Comment deleted successfully');
+
+      // Verify it is gone
+      const getRes = await request(app)
+        .get(`/api/v1/tasks/${testTaskId}/comments`)
+        .set('Authorization', `Bearer ${authToken}`);
+      
+      const commentExists = getRes.body.some((c: any) => c.id === createdCommentId);
+      expect(commentExists).toBe(false);
+    });
+
+    it('should return 403 if trying to delete someone elses comment', async () => {
+      const outsider = await UserModel.create({
+        name: 'Outsider',
+        email: `outsider-del-${Date.now()}@test.com`,
+        passwordHash: 'fake'
+      });
+      await ProjectMemberModel.create({ projectId: Number(testProjectId), userId: outsider.id });
+      const outsiderToken = jwt.sign({ userId: String(outsider.id) }, process.env.JWT_SECRET || 'testsecret');
+
+      const res = await request(app)
+        .delete(`/api/v1/tasks/${testTaskId}/comments/${createdCommentId}`)
+        .set('Authorization', `Bearer ${outsiderToken}`);
+
+      expect(res.status).toBe(403);
+    });
+  });
 });

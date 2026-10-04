@@ -6,6 +6,8 @@ import workspaceRoutes from './routes/workspace.routes';
 import projectRoutes from './routes/project.routes';
 import taskRoutes from './routes/task.routes';
 import commentRoutes from './routes/comment.routes';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 
 
 
@@ -33,6 +35,9 @@ apiRouter.use('/auth', authRoutes);
 
 // Register v1 router
 app.use('/api/v1', apiRouter);
+
+// Swagger API Documentation UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Fallback for unhandled routes
 app.use(notFoundHandler);

@@ -4,6 +4,32 @@ import rateLimit from 'express-rate-limit';
 import { ENV } from '../config/env';
 import { Application } from 'express';
 
+// Global API rate limiter (generous limit for normal usage)
+export const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes window
+  max: 500, // 500 requests per IP
+  skip: () => process.env.NODE_ENV === 'test', // Bypass in test environment
+  standardHeaders: true, 
+  legacyHeaders: false, 
+  message: {
+    error: 'TooManyRequests',
+    message: 'Too many requests from this IP, please try again after 15 minutes'
+  }
+});
+
+// Strict limiter for authentication endpoints (prevents brute-force)
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes window
+  max: 10, // Only 10 requests per IP
+  skip: () => process.env.NODE_ENV === 'test', // Bypass in test environment
+  standardHeaders: true, 
+  legacyHeaders: false, 
+  message: {
+    error: 'TooManyRequests',
+    message: 'Too many authentication attempts from this IP, please try again after 15 minutes'
+  }
+});
+
 export const configureSecurity = (app: Application) => {
   // Helmet for secure HTTP headers
   app.use(helmet());
@@ -15,18 +41,6 @@ export const configureSecurity = (app: Application) => {
     allowedHeaders: ['Content-Type', 'Authorization']
   }));
 
-  // Basic API rate limiting and abuse protection
-  const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    message: {
-      error: 'TooManyRequests',
-      message: 'Too many requests from this IP, please try again after 15 minutes'
-    }
-  });
-
-  // Apply the rate limiting middleware to API calls
-  app.use('/api', apiLimiter);
+  // Apply the global rate limiting middleware to all API calls
+  app.use('/api', globalLimiter);
 };
