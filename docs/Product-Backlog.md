@@ -46,7 +46,7 @@
 
 **Dependencies:** TECH-01, TECH-04
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-1.2
 
@@ -58,7 +58,7 @@
 
 **Dependencies:** US-1.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-1.3
 
@@ -70,7 +70,7 @@
 
 **Dependencies:** US-1.2
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-1.4
 
@@ -82,7 +82,7 @@
 
 **Dependencies:** US-1.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-1.5
 
@@ -94,7 +94,7 @@
 
 **Dependencies:** US-1.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-1.6
 
@@ -106,7 +106,7 @@
 
 **Dependencies:** US-1.5
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-1.7
 
@@ -118,7 +118,7 @@
 
 **Dependencies:** US-1.2
 
-**Status:** Todo
+**Status:** Done
 
 ### Epic 2: Workspace Management
 
@@ -184,7 +184,7 @@
 
 **Dependencies:** US-2.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-3.2
 
@@ -196,7 +196,7 @@
 
 **Dependencies:** US-3.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-3.3
 
@@ -208,7 +208,7 @@
 
 **Dependencies:** US-3.1, US-2.2
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-3.4
 
@@ -220,7 +220,7 @@
 
 **Dependencies:** US-3.1
 
-**Status:** Todo
+**Status:** Done
 
 ### Epic 4: Task Management
 
@@ -234,7 +234,7 @@
 
 **Dependencies:** US-3.3
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-4.2
 
@@ -246,7 +246,7 @@
 
 **Dependencies:** US-4.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-4.3
 
@@ -258,7 +258,7 @@
 
 **Dependencies:** US-4.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-4.4
 
@@ -270,7 +270,7 @@
 
 **Dependencies:** US-4.1, US-3.3
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-4.5
 
@@ -282,7 +282,7 @@
 
 **Dependencies:** US-4.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-4.6
 
@@ -294,7 +294,7 @@
 
 **Dependencies:** US-4.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-4.7
 
@@ -306,7 +306,7 @@
 
 **Dependencies:** US-4.1
 
-**Status:** Todo
+**Status:** Done
 
 ### Epic 5: Kanban Board
 
@@ -320,7 +320,7 @@
 
 **Dependencies:** US-4.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-5.2
 
@@ -332,7 +332,7 @@
 
 **Dependencies:** US-5.1, US-4.5
 
-**Status:** Todo
+**Status:** Done
 
 ### Epic 6: Comments
 
@@ -346,7 +346,7 @@
 
 **Dependencies:** US-4.2
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-6.2
 
@@ -358,7 +358,7 @@
 
 **Dependencies:** US-6.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-6.3
 
@@ -370,7 +370,7 @@
 
 **Dependencies:** US-6.1
 
-**Status:** Todo
+**Status:** Done
 
 ### Epic 7: Activity & Audit Trail
 
@@ -384,7 +384,7 @@
 
 **Dependencies:** US-4.1, US-4.4, US-4.5, US-4.6
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-7.2
 
@@ -396,7 +396,7 @@
 
 **Dependencies:** US-7.1
 
-**Status:** Todo
+**Status:** Done
 
 ### Epic 8: Search, Filtering & Pagination
 
@@ -410,7 +410,7 @@
 
 **Dependencies:** US-4.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-8.2
 
@@ -422,7 +422,7 @@
 
 **Dependencies:** US-4.1
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** US-8.3
 
@@ -434,7 +434,7 @@
 
 **Dependencies:** US-4.1
 
-**Status:** Todo
+**Status:** Done
 
 ### Epic 9: Notifications (Future Scope)
 
@@ -472,7 +472,7 @@
 
 **Dependencies:** US-2.2
 
-**Status:** Done
+**Status:** Todo
 
 ---
 
@@ -486,7 +486,7 @@
 
 **Details:** Setup `package.json`, folder structure, and development scripts.
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** TECH-02
 
@@ -496,7 +496,7 @@
 
 **Details:** Setup `tsconfig.json` and strict type checking.
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** TECH-03
 
@@ -506,7 +506,7 @@
 
 **Details:** Configure Express app, base router, and health-check endpoint.
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** TECH-04
 
@@ -516,7 +516,7 @@
 
 **Details:** Establish PostgreSQL connection through Prisma, configure the Prisma Client, environment-based database connection string, migrations, and basic startup failure handling. (Avoid unnecessary retry infrastructure).
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** TECH-05
 
@@ -526,7 +526,7 @@
 
 **Details:** Setup `dotenv` and `zod` schema to strictly validate environment variables on boot.
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** TECH-06
 
@@ -536,7 +536,7 @@
 
 **Details:** Implement `helmet`, `cors`, rate limiting, and a centralized error handling middleware to sanitize responses.
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** TECH-07
 
@@ -546,7 +546,7 @@
 
 **Details:** Generic middleware to validate request bodies/queries against `zod` schemas.
 
-**Status:** Todo
+**Status:** Done
 
 **ID:** TECH-08
 

@@ -361,7 +361,7 @@ API documentation is maintained in:
 docs/API-Specification.md
 ```
 
-OpenAPI documentation will be introduced during backend development.
+Interactive OpenAPI (Swagger) documentation is available during development at `/api-docs`.
 
 ---
 
@@ -400,7 +400,7 @@ Security requirements include:
 Current stage:
 
 ```text
-Frontend Integration - Sprint 6 (Epic 7 & 8)
+Sprint 7 - Backend Quality + API Documentation (Finalizing Backend MVP)
 ```
 
 Completed planning:
