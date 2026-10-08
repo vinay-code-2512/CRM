@@ -61,13 +61,16 @@ SyncForge is designed for:
 
 ```text
 Node.js
-Express.js
+Express.js (v5)
 TypeScript
-PostgreSQL
+PostgreSQL (Neon)
 Prisma (v8)
 REST API
-JWT
-bcrypt
+JWT (jsonwebtoken)
+bcryptjs
+Helmet
+express-rate-limit
+Swagger (swagger-jsdoc + swagger-ui-express)
 ```
 
 ### Database Updates (Prisma 8)
@@ -82,20 +85,29 @@ When you modify the database schema (`backend/prisma/contract.prisma`), run the 
 
 ## Frontend
 
-The frontend will be implemented after the backend reaches the planned integration stage.
+```text
+React 19
+TypeScript
+Vite 8
+Tailwind CSS v4
+React Router v7
+Redux Toolkit + React-Redux
+TanStack React Query
+Axios
+OxLint
+```
 
-The frontend technology will follow the approved project architecture.
-
-## Development Tools
+## DevOps & Tooling
 
 ```text
-Git
-GitHub
+Docker + Docker Compose
+Git / GitHub
 Postman
 VS Code / Antigravity
 Figma
-ESLint
-Prettier
+Jest + Supertest (backend testing)
+SWC (test transpilation)
+Nodemon (backend dev server)
 ```
 
 ---
@@ -107,7 +119,7 @@ High-level architecture:
 ```text
                     ┌───────────────────┐
                     │      Client       │
-                    │     Frontend      │
+                    │  React + Vite     │
                     └─────────┬─────────┘
                               │
                               │ HTTPS / REST
@@ -120,6 +132,8 @@ High-level architecture:
                     │    Middleware     │
                     │ Auth / Validation │
                     │ Authorization     │
+                    │ Rate Limiting     │
+                    │ Helmet / CORS     │
                     └─────────┬─────────┘
                               │
                     ┌─────────▼─────────┐
@@ -140,7 +154,7 @@ High-level architecture:
                     └─────────┬─────────┘
                               │
                     ┌─────────▼─────────┐
-                    │    PostgreSQL     │
+                    │  PostgreSQL (Neon)│
                     └───────────────────┘
 ```
 
@@ -148,25 +162,92 @@ High-level architecture:
 
 # 6. Project Structure
 
-The project will follow a modular architecture.
-
-Expected high-level structure:
-
 ```text
 SyncForge/
 │
 ├── docs/
+│   ├── BRD.md
+│   ├── PRD.md
+│   ├── Product-Backlog.md
+│   ├── Sprint-Plan.md
+│   ├── Architecture.md
+│   ├── Database-Design.md
+│   ├── ER-Diagram.md
+│   ├── API-Specification.md
+│   ├── adr/
+│   │   ├── 001-backend-stack.md
+│   │   ├── 002-database.md
+│   │   ├── 003-authentication.md
+│   │   └── 004-api-architecture.md
+│   ├── engineering/
+│   │   ├── 001-coding-standards.md
+│   │   ├── 002-git-workflow.md
+│   │   ├── 003-testing-strategy.md
+│   │   └── 004-security-standards.md
+│   └── ui-ux/
+│       ├── 001-design-system.md
+│       ├── 002-user-flows.md
+│       ├── 003-page-map.md
+│       └── 004-wireframes.md
 │
 ├── backend/
+│   ├── src/
+│   │   ├── app.ts
+│   │   ├── server.ts
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   │   ├── activity.controller.ts
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── comment.controller.ts
+│   │   │   ├── project.controller.ts
+│   │   │   ├── task.controller.ts
+│   │   │   └── workspace.controller.ts
+│   │   ├── routes/
+│   │   │   ├── auth.routes.ts
+│   │   │   ├── comment.routes.ts
+│   │   │   ├── project.routes.ts
+│   │   │   ├── task.routes.ts
+│   │   │   └── workspace.routes.ts
+│   │   ├── services/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── lib/
+│   │   ├── types/
+│   │   └── utils/
+│   ├── tests/
+│   ├── prisma/
+│   ├── migrations/
+│   ├── Dockerfile
+│   ├── package.json
+│   └── tsconfig.json
 │
 ├── frontend/
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   ├── index.css
+│   │   ├── app/
+│   │   ├── components/
+│   │   ├── features/
+│   │   │   ├── auth/
+│   │   │   ├── projects/
+│   │   │   ├── tasks/
+│   │   │   └── workspaces/
+│   │   ├── hooks/
+│   │   ├── lib/
+│   │   ├── routes/
+│   │   ├── store/
+│   │   └── types/
+│   ├── public/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── tsconfig.json
 │
+├── docker-compose.yaml
 ├── .gitignore
-├── README.md
-└── package configuration files
+└── README.md
 ```
-
-The backend structure will be finalized during backend initialization.
 
 ---
 
@@ -180,42 +261,54 @@ docs/
 
 Documentation includes:
 
-```text
-BRD.md
-PRD.md
-Product-Backlog.md
-Sprint-Plan.md
-Architecture.md
-Database-Design.md
-ER-Diagram.md
-API-Specification.md
-```
+| Document | Description |
+|---|---|
+| `BRD.md` | Business Requirements Document |
+| `PRD.md` | Product Requirements Document |
+| `Product-Backlog.md` | Full product backlog |
+| `Sprint-Plan.md` | Sprint planning details |
+| `Architecture.md` | System architecture |
+| `Database-Design.md` | Database schema design |
+| `ER-Diagram.md` | Entity-Relationship diagram |
+| `API-Specification.md` | REST API specification |
 
 Architecture decisions:
 
 ```text
 docs/adr/
+├── 001-backend-stack.md
+├── 002-database.md
+├── 003-authentication.md
+└── 004-api-architecture.md
 ```
 
 UI/UX documentation:
 
 ```text
 docs/ui-ux/
+├── 001-design-system.md
+├── 002-user-flows.md
+├── 003-page-map.md
+└── 004-wireframes.md
 ```
 
 Engineering standards:
 
 ```text
 docs/engineering/
+├── 001-coding-standards.md
+├── 002-git-workflow.md
+├── 003-testing-strategy.md
+└── 004-security-standards.md
 ```
 
 ---
 
 # 8. Development Approach
 
-SyncForge will be developed using an iterative Agile-style workflow.
+SyncForge is developed using an iterative Agile-style workflow.
 
-The project will be divided into:
+The project is divided into:
 
 ```text
 Epic
@@ -233,43 +326,143 @@ Code Review
 Merge
 ```
 
-Work will be organized into sprints.
+Work is organized into sprints.
 
 ---
 
-# 9. Backend-First Development
+# 9. Getting Started
 
-SyncForge will initially prioritize backend development.
+## Prerequisites
 
-The development strategy is:
+* Node.js (v20+)
+* npm
+* Git
+* Docker & Docker Compose (optional, for containerized setup)
+* PostgreSQL (or use the Neon cloud database)
 
-```text
-Requirements
-     ↓
-Architecture
-     ↓
-Database
-     ↓
-API Contract
-     ↓
-Backend Foundation
-     ↓
-Authentication
-     ↓
-Core APIs
-     ↓
-Testing
-     ↓
-Frontend Integration
+## Local Development (Without Docker)
+
+### Backend
+
+```bash
+cd backend
+npm install
 ```
 
-The frontend will begin after a substantial portion of the backend foundation and core APIs are stable.
+Create a `.env` file in `backend/` with:
 
-This allows the API contract and business logic to be validated before extensive frontend development.
+```text
+PORT=3000
+NODE_ENV=development
+JWT_SECRET=<your-secret>
+DATABASE_URL=<your-postgresql-connection-string>
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+The backend will be available at `http://localhost:3000`.
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+```
+
+Create a `.env` file in `frontend/` with:
+
+```text
+VITE_API_BASE_URL=http://localhost:3000/api/v1
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+The frontend will be available at `http://localhost:5173`.
+
+## Docker Setup
+
+Run the entire stack with Docker Compose from the project root:
+
+```bash
+docker-compose up --build
+```
+
+This starts:
+
+| Service | Port | Description |
+|---|---|---|
+| `frontend` | `5173` | React + Vite dev server |
+| `backend` | `3000` | Express API server |
+
+To stop the services:
+
+```bash
+docker-compose down
+```
 
 ---
 
-# 10. Git Workflow
+# 10. Available Scripts
+
+## Backend (`backend/`)
+
+| Script | Command | Description |
+|---|---|---|
+| `dev` | `npm run dev` | Start dev server with nodemon |
+| `build` | `npm run build` | Compile TypeScript to `dist/` |
+| `start` | `npm start` | Run compiled production server |
+| `test` | `npm test` | Run Jest tests (sequential) |
+
+## Frontend (`frontend/`)
+
+| Script | Command | Description |
+|---|---|---|
+| `dev` | `npm run dev` | Start Vite dev server |
+| `build` | `npm run build` | TypeScript check + Vite production build |
+| `lint` | `npm run lint` | Run OxLint |
+| `preview` | `npm run preview` | Preview production build |
+
+---
+
+# 11. API
+
+SyncForge exposes REST APIs.
+
+Base development URL:
+
+```text
+http://localhost:3000/api/v1
+```
+
+### API Modules
+
+| Module | Endpoint Prefix | Description |
+|---|---|---|
+| Auth | `/api/v1/auth` | Registration, login, profile |
+| Workspaces | `/api/v1/workspaces` | Workspace CRUD & members |
+| Projects | `/api/v1/projects` | Project management |
+| Tasks | `/api/v1/tasks` | Task management |
+| Comments | `/api/v1/comments` | Task comments |
+
+API documentation is maintained in:
+
+```text
+docs/API-Specification.md
+```
+
+Interactive OpenAPI (Swagger) documentation is available during development at `/api-docs`.
+
+---
+
+# 12. Git Workflow
 
 Development work should not be performed directly on `main`.
 
@@ -295,7 +488,7 @@ Changes should be submitted through Pull Requests.
 
 ---
 
-# 11. Commit Convention
+# 13. Commit Convention
 
 Commits should follow a conventional format.
 
@@ -312,69 +505,57 @@ chore: update dependencies
 
 ---
 
-# 12. Development Environment
-
-## Prerequisites
-
-Developers should have:
-
-* Node.js
-* npm
-* Git
-* PostgreSQL
-* API testing tool
-* Code editor
-
----
-
-# 13. Environment Variables
+# 14. Environment Variables
 
 Environment-specific configuration must not be committed to Git.
 
-Example:
+### Backend (`backend/.env`)
 
-```text
-PORT=3000
-DATABASE_URL=
-JWT_SECRET=
-JWT_EXPIRES_IN=
-CLIENT_URL=
-```
+| Variable | Required | Description |
+|---|---|---|
+| `PORT` | Yes | Server port (default: `3000`) |
+| `NODE_ENV` | Yes | Environment (`development` / `production`) |
+| `JWT_SECRET` | Yes | Secret key for JWT signing |
+| `DATABASE_URL` | Yes | PostgreSQL connection string (pooled) |
+| `DATABASE_URL_UNPOOLED` | No | Direct PostgreSQL connection string |
+| `NEON_BRANCH` | No | Neon database branch name |
 
-The exact environment variables will be documented as backend development progresses.
+### Frontend (`frontend/.env`)
 
----
-
-# 14. API
-
-SyncForge exposes REST APIs.
-
-Base development URL:
-
-```text
-http://localhost:3000/api/v1
-```
-
-API documentation is maintained in:
-
-```text
-docs/API-Specification.md
-```
-
-Interactive OpenAPI (Swagger) documentation is available during development at `/api-docs`.
+| Variable | Required | Description |
+|---|---|---|
+| `VITE_API_BASE_URL` | Yes | Backend API base URL |
 
 ---
 
 # 15. Testing
 
-Testing will include:
+Testing includes:
 
-* Unit testing
-* Integration testing
-* API testing
-* End-to-end testing
+* **Unit testing** — Jest + SWC
+* **Integration testing** — Supertest
+* **API testing** — Postman / Swagger
+* **End-to-end testing** — Planned
 
-Tests will be introduced alongside feature development.
+Run backend tests:
+
+```bash
+cd backend
+npm test
+```
+
+Tests are organized mirroring the source structure:
+
+```text
+backend/tests/
+├── app.test.ts
+├── setup.ts
+├── config/
+├── controllers/
+├── middleware/
+├── routes/
+└── services/
+```
 
 ---
 
@@ -383,11 +564,11 @@ Tests will be introduced alongside feature development.
 Security requirements include:
 
 * JWT authentication
-* Password hashing
+* Password hashing (bcryptjs)
 * Input validation
-* Authorization
-* Rate limiting
-* Secure headers
+* Authorization (role-based)
+* Rate limiting (express-rate-limit)
+* Secure headers (Helmet)
 * CORS configuration
 * Secure environment variables
 * File upload validation
@@ -419,6 +600,7 @@ Completed planning & execution:
 ✓ Engineering Standards
 ✓ Backend Foundation & Core APIs
 ✓ Frontend Integration & Full-System Testing
+✓ Docker Containerization
 ```
 
 Next stage:
@@ -449,6 +631,8 @@ Frontend Development
 Frontend Integration
    ↓
 Full-System Testing
+   ↓
+Docker Containerization
    ↓
 CI/CD
    ↓
