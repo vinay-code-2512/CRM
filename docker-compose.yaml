@@ -1,18 +1,17 @@
 services:
 
   frontend:
-    build: ./frontend
+    image: vinaysingh0912/myapp-frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
     container_name: frontend
     ports:
       - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     depends_on:
       - backend
 
   backend:
-    build: ./backend
+    image: vinaysingh0912/myapp-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
     container_name: backend
     ports:
       - "3000:3000"
