@@ -37,6 +37,8 @@ jobs:
         with:
           context: ./frontend
           push: true
+          build-args: |
+               VITE_API_URL=http://13.127.1.31:3000
           tags: |
             vinaysingh0912/myapp-frontend:${{ github.sha }}
             vinaysingh0912/myapp-frontend:latest
