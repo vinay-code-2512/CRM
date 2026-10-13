@@ -92,7 +92,7 @@ return (
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
                 <div className="relative z-10">
                     <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Welcome </h1>
+                        <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Welcome Back</h1>
                         <p className="text-slate-400 text-sm">Sign in to your SyncForge account</p>
                     </div>
                     <form onSubmit={handleSubmit} className="space-y-6">
