@@ -53,3 +53,24 @@ export const useCreateProject = () => {
         },
     });
 };
+
+// --- DELETE PROJECT ---
+export interface DeleteProjectParams {
+    workspaceId: string;
+    projectId: string;
+}
+
+export const deleteProject = async ({ workspaceId, projectId }: DeleteProjectParams): Promise<void> => {
+    await api.delete(`/workspaces/${workspaceId}/projects/${projectId}`);
+};
+
+export const useDeleteProject = (workspaceId: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: deleteProject,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['projects', workspaceId] });
+        },
+    });
+};
+

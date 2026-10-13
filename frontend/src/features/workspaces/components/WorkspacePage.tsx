@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useWorkspace } from '../api/workspaces';
-import { useProjects } from '../../projects/api/projects';
+import { useWorkspace, useDeleteWorkspace } from '../api/workspaces';
+import { useProjects, useDeleteProject } from '../../projects/api/projects';
 import { CreateProjectModal } from '../../projects/components/CreateProjectModal';
 import { AddMemberModal } from './AddMemberModal';
 
@@ -22,6 +22,46 @@ export const WorkspacePage: React.FC = () => {
 
     // 5. State for the Add Member Modal
     const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+
+    // 6. Project deletion mutation
+    const { mutate: deleteProjectMutation } = useDeleteProject(workspaceId!);
+
+    const handleDeleteProject = (e: React.MouseEvent, projectId: number, projectName: string) => {
+        e.stopPropagation(); // Prevent card navigation click
+        if (!window.confirm(`Are you sure you want to delete project "${projectName}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        deleteProjectMutation(
+            { workspaceId: workspaceId!, projectId: String(projectId) },
+            {
+                onError: (err: any) => {
+                    const message = err.response?.data?.message || 'Failed to delete project. Only Workspace Owners and Admins can delete projects.';
+                    alert(message);
+                }
+            }
+        );
+    };
+
+    // 7. Workspace deletion mutation
+    const { mutate: deleteWorkspaceMutation, isPending: isDeletingWorkspace } = useDeleteWorkspace();
+
+    const handleDeleteWorkspace = () => {
+        if (!workspace) return;
+        if (!window.confirm(`Are you sure you want to delete workspace "${workspace.name}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        deleteWorkspaceMutation(workspaceId!, {
+            onSuccess: () => {
+                navigate('/');
+            },
+            onError: (err: any) => {
+                const message = err.response?.data?.message || 'Failed to delete workspace. Only the Workspace Owner can delete it.';
+                alert(message);
+            }
+        });
+    };
 
     if (isWorkspaceLoading) {
         return (
@@ -77,6 +117,19 @@ export const WorkspacePage: React.FC = () => {
                     >
                         + New Project
                     </button>
+
+                    {/* Delete Workspace button */}
+                    <button 
+                        onClick={handleDeleteWorkspace}
+                        disabled={isDeletingWorkspace}
+                        className="px-3 py-2 bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 hover:text-red-700 text-sm font-medium rounded-lg transition-colors shadow-sm flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Delete Workspace (Owner only)"
+                    >
+                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        {isDeletingWorkspace ? 'Deleting...' : 'Delete Workspace'}
+                    </button>
                 </div>
             </header>
 
@@ -114,10 +167,24 @@ export const WorkspacePage: React.FC = () => {
                             <div 
                                 key={project.id} 
                                 onClick={() => navigate(`/workspaces/${workspaceId}/projects/${project.id}`)}
-                                className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6 cursor-pointer hover:border-indigo-300"
+                                className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6 cursor-pointer hover:border-indigo-300 relative group flex flex-col justify-between"
                             >
-                                <h3 className="text-lg font-bold text-slate-900 mb-2">{project.name}</h3>
-                                <p className="text-slate-500 text-sm mb-4">{project.description || 'No description provided.'}</p>
+                                <div>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{project.name}</h3>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => handleDeleteProject(e, project.id, project.name)}
+                                            className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                            title="Delete project"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <p className="text-slate-500 text-sm mb-4">{project.description || 'No description provided.'}</p>
+                                </div>
                             </div>
                         ))}
                     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../store/store';
-import { type Task, useUpdateTask } from '../api/tasks';
+import { type Task, useUpdateTask, useDeleteTask } from '../api/tasks';
 import { useComments, useCreateComment, useUpdateComment, useDeleteComment } from '../api/comments';
 import axios from 'axios';
 
@@ -26,6 +26,32 @@ export const TaskDetailPanel: React.FC<TaskDetailPanelProps> = ({ task, onClose,
 
     // Our update mutation
     const { mutate: updateTask, isPending } = useUpdateTask(projectId);
+
+    // Delete task mutation
+    const { mutate: deleteTaskMutation, isPending: isDeletingTask } = useDeleteTask(projectId);
+
+    const handleDeleteTask = () => {
+        if (!task) return;
+        if (!window.confirm(`Are you sure you want to delete "${task.title}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        deleteTaskMutation(
+            { projectId, taskId: String(task.id) },
+            {
+                onSuccess: () => {
+                    onClose();
+                },
+                onError: (error: any) => {
+                    if (axios.isAxiosError(error) && error.response) {
+                        setErrorMessage(error.response.data.message || 'Failed to delete task. You must be a project member.');
+                    } else {
+                        setErrorMessage('An unexpected error occurred while deleting the task.');
+                    }
+                }
+            }
+        );
+    };
 
     // Fetch comments for the selected task
     const { data: comments, isLoading: commentsLoading } = useComments(task ? String(task.id) : '');
@@ -324,21 +350,42 @@ export const TaskDetailPanel: React.FC<TaskDetailPanelProps> = ({ task, onClose,
                 </div>
 
                 {/* Panel Footer */}
-                <div className="px-6 py-4 border-t border-slate-200 flex gap-3 justify-end bg-slate-50">
+                <div className="px-6 py-4 border-t border-slate-200 flex justify-between items-center bg-slate-50">
+                    {/* Delete Task Button on the left */}
                     <button
                         type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                        onClick={handleDeleteTask}
+                        disabled={isDeletingTask}
+                        className={`px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200 flex items-center ${
+                            isDeletingTask ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        title="Delete this task"
                     >
-                        Cancel
+                        <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        {isDeletingTask ? 'Deleting...' : 'Delete Task'}
                     </button>
-                    <button
-                        onClick={handleSave}
-                        disabled={isPending || !title.trim()}
-                        className={`px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20 ${(isPending || !title.trim()) ? 'opacity-70 cursor-not-allowed' : ''}`}
-                    >
-                        {isPending ? 'Saving...' : 'Save Changes'}
-                    </button>
+
+                    {/* Cancel & Save buttons on the right */}
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={isPending || isDeletingTask || !title.trim()}
+                            className={`px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-600/20 ${
+                                (isPending || isDeletingTask || !title.trim()) ? 'opacity-70 cursor-not-allowed' : ''
+                            }`}
+                        >
+                            {isPending ? 'Saving...' : 'Save Changes'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

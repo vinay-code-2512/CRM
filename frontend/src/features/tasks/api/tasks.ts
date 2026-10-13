@@ -118,3 +118,30 @@ export const useUpdateTask = (projectId: string) => {
         },
     });
 };
+
+// ==========================================
+// DELETE TASK API & MUTATION HOOK
+// ==========================================
+
+export interface DeleteTaskParams {
+    projectId: string;
+    taskId: string;
+}
+
+// 1. Raw API call to DELETE /projects/:projectId/tasks/:taskId
+export const deleteTask = async (data: DeleteTaskParams): Promise<void> => {
+    await api.delete(`/projects/${data.projectId}/tasks/${data.taskId}`);
+};
+
+// 2. React Query mutation hook — auto-refreshes the task list after deleting
+export const useDeleteTask = (projectId: string) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: deleteTask,
+        onSuccess: () => {
+            // Invalidates the task list cache so the board & table update immediately
+            queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+        },
+    });
+};
+

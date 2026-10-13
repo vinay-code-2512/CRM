@@ -94,3 +94,21 @@ export const useAddWorkspaceMember = () => {
         mutationFn: addWorkspaceMember,
     });
 };
+
+// 12. Delete workspace API function
+export const deleteWorkspace = async (workspaceId: string): Promise<void> => {
+    await api.delete(`/workspaces/${workspaceId}`);
+};
+
+// 13. React Query mutation hook for deleting workspace
+export const useDeleteWorkspace = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: deleteWorkspace,
+        onSuccess: () => {
+            // Invalidate the workspaces cache so Dashboard and Sidebar update immediately
+            queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+        },
+    });
+};
+
